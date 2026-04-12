@@ -1,0 +1,141 @@
+================================================================================
+              QUESTION BANK — DATA STRUCTURES AND ALGORITHMS
+              Subject Code: CS3301  |  Semester: III  |  Reg: R2021
+================================================================================
+
+                         UNIT 1 — LINEAR DATA STRUCTURES
+                              Stack, Queue, Arrays, Lists
+
+                              PART - A (2 Marks)
+
+1. Define data structure and classify its types. [2] K1
+2. State the difference between linear and non-linear data structures. [2] K1
+3. What is a stack? Mention its basic operations. [2] K1
+4. List the applications of stack in real-time systems. [2] K1
+5. Define a queue. Mention the types of queues. [2] K1
+6. What is a deque? List its operations. [2] K1
+7. Define a linked list. State its advantages over arrays. [2] K1
+8. Mention the types of linked lists. [2] K1
+9. Write the postfix notation for the expression (A+B)*(C-D). [2] K2
+10. Convert the infix expression A+B*C-D to postfix form. [2] K2
+11. What is overflow and underflow in stack? [2] K1
+12. State the applications of queue in operating systems. [2] K1
+13. Define circular queue and mention its advantage. [2] K1
+14. What is a doubly linked list? State its operations. [2] K1
+15. Mention the difference between array and linked list. [2] K1
+
+                              PART - B (16 Marks)
+
+16. Explain the array representation of stack and queue with suitable examples. Discuss push, pop, enqueue, and dequeue operations with algorithms. [16] K2
+17. Describe the singly linked list. Write algorithms for insertion at beginning, middle, and end. Also write deletion algorithm. [16] K2
+18. Explain doubly linked list with its insertion and deletion algorithms. Compare it with singly linked list. [16] K2
+19. Explain circular queue. Write algorithms for insertion and deletion operations in circular queue. [16] K2
+20. Discuss the applications of stack. Write algorithms for infix to postfix conversion and postfix expression evaluation. [16] K2
+
+================================================================================
+
+                         UNIT 2 — SORTING AND SEARCHING
+                           Sorting Algorithms, Searching Techniques
+
+                              PART - A (2 Marks)
+
+21. Define sorting. Classify sorting algorithms. [2] K1
+22. What is bubble sort? State its time complexity. [2] K1
+23. Define selection sort and mention its advantage. [2] K1
+24. What is insertion sort? State its best and worst case complexity. [2] K1
+25. Define merge sort. What strategy does it use? [2] K1
+26. What is quick sort? What is the role of pivot? [2] K2
+27. State the time complexity of binary search. [2] K1
+28. What is linear search? When is it preferred over binary search? [2] K1
+29. Define stable sorting. Give one example. [2] K1
+30. What is the difference between internal and external sorting? [2] K2
+
+                              PART - B (16 Marks)
+
+31. Analyze the time and space complexity of Bubble Sort, Selection Sort, Insertion Sort, and Merge Sort. Compare their performance. [16] K4
+32. Explain merge sort with an example. Trace the execution for: 38, 27, 43, 3, 9, 82, 10. [16] K2
+33. Explain quick sort algorithm. Trace the execution for: 10, 80, 30, 90, 40, 50, 70. [16] K2
+34. Compare linear search and binary search with algorithms. Analyze time complexity of binary search. [16] K4
+35. Discuss the divide and conquer strategy. Apply it to merge sort and analyze its recurrence relation. [16] K4
+
+================================================================================
+
+                         UNIT 3 — TREES
+                           Binary Trees, BST, AVL Trees, Heaps
+
+                              PART - A (2 Marks)
+
+36. State the properties of a binary tree. [2] K1
+37. Define BST. State the BST property. [2] K1
+38. What is a complete binary tree? [2] K1
+39. Define AVL tree. What is balance factor? [2] K1
+40. What is a heap? Mention its types. [2] K1
+41. Define tree height and depth. [2] K1
+42. State the difference between full binary tree and complete binary tree. [2] K1
+43. What are tree traversal methods? [2] K1
+44. Define expression tree. [2] K1
+45. What is a min-heap? Give an example. [2] K1
+
+                              PART - B (16 Marks)
+
+46. Explain binary search tree (BST). Construct a BST for: 50, 30, 70, 20, 40, 60, 80. Perform in-order, pre-order, and post-order traversal. [16] K2
+47. Discuss AVL trees and their rotations. Explain LL, RR, LR, RL rotations with diagrams. Construct AVL tree for: 10, 20, 30, 40, 50, 25. [16] K2
+48. Explain heap sort. Construct a max-heap for: 4, 10, 3, 5, 1. Trace the sorting process. [16] K3
+49. Explain binary tree traversal: in-order, pre-order, post-order. Write recursive algorithms. Apply on a sample tree. [16] K2
+50. Discuss the construction of an expression tree. Evaluate the expression tree for: (A+B)*(C-D/E). [16] K3
+
+================================================================================
+
+                         UNIT 4 — GRAPHS
+                           Graph Representation, BFS, DFS, Spanning Trees
+
+                              PART - A (2 Marks)
+
+51. Define graph and mention its types. [2] K1
+52. What is an adjacency matrix? Give an example. [2] K1
+53. Define BFS traversal. [2] K1
+54. What is DFS traversal? [2] K1
+55. Mention the difference between BFS and DFS traversal. [2] K2
+56. Define spanning tree. [2] K1
+57. What is a minimum spanning tree (MST)? [2] K1
+58. State Kruskal's algorithm for MST. [2] K1
+59. Define topological sorting. [2] K1
+60. What is a directed acyclic graph (DAG)? [2] K1
+
+                              PART - B (16 Marks)
+
+61. Compare BFS and DFS graph traversal. Apply both on graph V={A,B,C,D,E}, E={AB,AC,BD,BE,CD,CE,DE}. Draw traversal order. [16] K4
+62. Explain Prim's and Kruskal's algorithms for MST. Apply Kruskal's algorithm to find MST of a given weighted graph. [16] K3
+63. Explain Dijkstra's shortest path algorithm. Apply it to find shortest paths from source vertex A. [16] K3
+64. Discuss graph representations: adjacency matrix and adjacency list. Compare their time and space complexity. [16] K4
+65. Explain topological sorting using DFS. Apply it on a given DAG and find the topological order. [16] K3
+
+================================================================================
+
+                         UNIT 5 — HASHING
+                           Hash Functions, Collision Resolution
+
+                              PART - A (2 Marks)
+
+66. What is hashing? List any two collision resolution techniques. [2] K1
+67. Define hash function. Give an example. [2] K1
+68. What is a collision? How is it handled? [2] K1
+69. Define open addressing. Mention its types. [2] K1
+70. What is chaining? When is it preferred? [2] K1
+71. Define load factor in hashing. [2] K1
+72. What is linear probing? Mention its disadvantage. [2] K1
+73. Define quadratic probing. [2] K1
+74. What is double hashing? Give an example. [2] K1
+75. State the properties of a good hash function. [2] K1
+
+                              PART - B (16 Marks)
+
+76. Design a hash table of size 10 using chaining for keys: 25, 42, 96, 101, 102, 162, 197. Analyze performance and compare with open addressing. [16] K6
+77. Explain linear probing. Insert keys 10, 22, 31, 4, 15, 28, 17, 88, 59 into a hash table of size 11 using linear probing. [16] K3
+78. Compare open addressing techniques: linear probing, quadratic probing, and double hashing with examples. [16] K4
+79. Discuss the properties of a good hash function. Explain division method, multiplication method, and folding method. [16] K2
+80. Explain extendible hashing. Compare it with static hashing. Discuss advantages and limitations. [16] K4
+
+================================================================================
+                            END OF QUESTION BANK
+================================================================================

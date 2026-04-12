@@ -1,0 +1,61 @@
+================================================================================
+                    SRI VENKATESWARA COLLEGE OF ENGINEERING
+                         DEPARTMENT OF COMPUTER SCIENCE
+================================================================================
+ Subject: Data Structures and Algorithms          Subject Code: CS3301
+ Semester: III                        Regulation: R2021
+ Exam Type: Internal Assessment - I               Max. Marks: 100
+ Duration: 3 Hours                                Date: 12-04-2026
+================================================================================
+
+                              PART - A (2 Marks)
+                     Answer ALL Questions (10 x 2 = 20 Marks)
+
+1. Define data structure and classify its types. [2] K1
+2. State the difference between linear and non-linear data structures. [2] K1
+3. What is a stack? Mention its basic operations. [2] K1
+4. List the applications of queue in real-time systems. [2] K1
+5. Define a linked list. State its advantages over arrays. [2] K1
+6. Write the postfix notation for the expression (A+B)*(C-D). [2] K2
+7. State the properties of a binary tree. [2] K1
+8. Define graph and mention its types. [2] K1
+9. What is hashing? List any two collision resolution techniques. [2] K1
+10. Mention the difference between BFS and DFS traversal. [2] K2
+
+================================================================================
+
+                              PART - B (16 Marks)
+                   Answer any FIVE Questions (5 x 16 = 80 Marks)
+
+11. Explain the array representation of stack and queue with suitable examples.
+    Discuss the push, pop, enqueue, and dequeue operations with algorithms. [16] K2
+
+12. Describe the singly linked list. Write algorithms for the following operations:
+    (a) Insertion at the beginning, middle, and end.        [8] K2
+    (b) Deletion of a node from a given position.          [8] K2
+
+13. Analyze the time and space complexity of the following sorting algorithms:
+    (a) Bubble Sort                                         [4] K4
+    (b) Selection Sort                                      [4] K4
+    (c) Insertion Sort                                      [4] K4
+    (d) Merge Sort                                          [4] K4
+
+14. Explain binary search tree (BST). Construct a BST for the following elements:
+    50, 30, 70, 20, 40, 60, 80. Perform in-order, pre-order, and post-order
+    traversal on the constructed tree. [16] K2
+
+15. Design a hash table of size 10 using chaining method for the following keys:
+    25, 42, 96, 101, 102, 162, 197. Analyze its performance for search operation.
+    Compare chaining with open addressing. [16] K6
+
+16. Compare BFS and DFS graph traversal algorithms. Apply both algorithms on the
+    following graph: V = {A, B, C, D, E}, E = {AB, AC, BD, BE, CD, CE, DE}
+    Draw the traversal tree and find the order of visiting nodes. [16] K4
+
+17. Discuss AVL trees and their rotations with examples.
+    (a) Explain LL, RR, LR, and RL rotations with diagrams.        [8] K2
+    (b) Construct an AVL tree by inserting: 10, 20, 30, 40, 50, 25. [8] K3
+
+================================================================================
+                              END OF QUESTION PAPER
+================================================================================
