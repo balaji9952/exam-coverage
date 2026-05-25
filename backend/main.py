@@ -14,7 +14,7 @@ from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, status, F
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, defer
 
 from database import (
     get_db, create_tables,
@@ -169,6 +169,7 @@ def create_regulation(data: RegulationCreate, db: Session = Depends(get_db)):
 def list_subjects(
     department_id: Optional[int] = None,
     semester: Optional[int] = None,
+    unique: bool = False,
     db: Session = Depends(get_db)
 ):
     q = db.query(Subject)
@@ -178,7 +179,14 @@ def list_subjects(
         q = q.filter(Subject.semester == semester)
     subjects = q.all()
     result = []
+    seen = set()
     for s in subjects:
+        if unique:
+            key = (s.name.strip().lower(), s.code.strip().lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            
         result.append({
             "id": s.id, "name": s.name, "code": s.code,
             "semester": s.semester,
@@ -256,6 +264,19 @@ async def upload_question_bank(
     try:
         raw_text, questions = await process_uploaded_file(file_bytes, file.filename)
 
+        # ─── Perfect AI Extraction Fallback ───
+        # If OCR missed major parts (e.g. only Part B found), or if GOOGLE_API_KEY is present, try AI
+        # Most papers have > 18 questions. If we found fewer, AI should verify.
+        if (not questions or len(questions) < 18) and os.getenv("GOOGLE_API_KEY"):
+            try:
+                from ai_extractor import extract_questions_with_ai
+                ai_questions = extract_questions_with_ai(raw_text)
+                if ai_questions and len(ai_questions) > 0:
+                    logger.info(f"AI-Enhanced bank extraction SUCCESS: {len(ai_questions)} questions found.")
+                    questions = ai_questions
+            except Exception as ai_err:
+                logger.error(f"AI Bank Enhancement failed: {ai_err}")
+
         # If no questions found, still save to staging but return a warning with raw text
         if not questions and raw_text.strip():
             logger.warning(f"No questions parsed from {file.filename}. Raw text length: {len(raw_text)}")
@@ -288,20 +309,27 @@ async def upload_question_bank(
                 "message": "Text extraction failed — ensure Tesseract is installed for image/scanned PDFs."
             }
 
+        # Map extracted unit numbers to database unit IDs
+        subject_units = db.query(SyllabusUnit).filter(SyllabusUnit.subject_id == subject_id).all()
+        unit_map = {u.unit_no: u.id for u in subject_units}
+
         staging_records = []
         for q in questions:
+            extracted_unit_no = q.get("unit_no")
+            predicted_uid = unit_map.get(extracted_unit_no) if extracted_unit_no else unit_id
+
             sr = QuestionStagingReview(
                 doc_id=doc.id,
                 subject_id=subject_id,
-                unit_id=unit_id,
-                predicted_unit_id=unit_id,
-                section_name=q.get("section_name"),
-                question_no=q.get("question_no"),
-                question_text=q.get("question_text", ""),
+                unit_id=predicted_uid or unit_id,
+                predicted_unit_id=predicted_uid or unit_id,
+                section_name=q.get("section_name") or q.get("section"),
+                question_no=q.get("question_no") or q.get("q_no"),
+                question_text=q.get("question_text") or q.get("question", ""),
                 marks=q.get("marks"),
-                blooms_level=q.get("blooms_level"),
-                question_type=q.get("question_type"),
-                confidence_score=0.85 if q.get("question_text") else 0.3,
+                blooms_level=q.get("blooms_level") or q.get("bloom"),
+                question_type=q.get("question_type") or ("descriptive" if (q.get("marks") or 0) > 2 else "short"),
+                confidence_score=0.9 if q.get("question_text") else 0.3,
                 review_status="pending"
             )
             db.add(sr)
@@ -328,11 +356,12 @@ async def upload_question_bank(
 @app.get("/question-bank/staging/{doc_id}")
 def get_staging_questions(doc_id: int, db: Session = Depends(get_db)):
     """Get all staged (pending review) questions for a document"""
-    questions = db.query(QuestionStagingReview).filter(
+    questions = db.query(QuestionStagingReview).options(
+        joinedload(QuestionStagingReview.unit)
+    ).filter(
         QuestionStagingReview.doc_id == doc_id
     ).all()
     
-    units = {u.id: u for u in db.query(SyllabusUnit).all()}
     result = []
     for q in questions:
         result.append({
@@ -346,7 +375,7 @@ def get_staging_questions(doc_id: int, db: Session = Depends(get_db)):
             "confidence_score": q.confidence_score,
             "review_status": q.review_status,
             "unit_id": q.unit_id,
-            "unit_title": units[q.unit_id].unit_title if q.unit_id and q.unit_id in units else None,
+            "unit_title": q.unit.unit_title if q.unit else None,
         })
     return result
 
@@ -402,27 +431,90 @@ def approve_staging_questions(req: BulkApproveRequest, db: Session = Depends(get
     return {"approved_count": approved}
 
 
+@app.get("/question-bank/documents")
+def list_bank_documents(db: Session = Depends(get_db)):
+    """List all uploaded question bank source files"""
+    from sqlalchemy import func
+    
+    docs = db.query(UploadedDocument).options(
+        joinedload(UploadedDocument.subject)
+    ).filter(UploadedDocument.doc_type == "question_bank").all()
+    
+    # Pre-calculate question counts to avoid N+1 queries
+    counts = dict(db.query(
+        QuestionBankMaster.doc_id, 
+        func.count(QuestionBankMaster.id)
+    ).filter(QuestionBankMaster.doc_id.isnot(None)).group_by(QuestionBankMaster.doc_id).all())
+    
+    result = []
+    for d in docs:
+        result.append({
+            "id": d.id,
+            "filename": d.filename,
+            "subject_id": d.subject_id,
+            "subject_name": d.subject.name if d.subject else "Unknown",
+            "subject_code": d.subject.code if d.subject else "---",
+            "uploaded_at": d.uploaded_at.isoformat(),
+            "status": d.status,
+            "question_count": counts.get(d.id, 0)
+        })
+    return sorted(result, key=lambda x: x["uploaded_at"], reverse=True)
+
+@app.delete("/question-bank/documents/{doc_id}")
+def delete_bank_document(doc_id: int, db: Session = Depends(get_db)):
+    """Delete a source document and all its questions"""
+    doc = db.query(UploadedDocument).filter(UploadedDocument.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # 1. Delete questions from master
+    db.query(QuestionBankMaster).filter(QuestionBankMaster.doc_id == doc_id).delete()
+    
+    # 2. Delete questions from staging
+    db.query(QuestionStagingReview).filter(QuestionStagingReview.doc_id == doc_id).delete()
+    
+    # 3. Delete the document record
+    db.delete(doc)
+    
+    # 4. Try to delete the physical file
+    try:
+        if os.path.exists(doc.file_path):
+            os.remove(doc.file_path)
+    except Exception as e:
+        logger.error(f"Failed to delete file {doc.file_path}: {e}")
+
+    db.commit()
+    return {"message": "Document and associated questions deleted"}
+
 # ─── Question Bank Management ─────────────────────────────────────────────────
 
 @app.get("/question-bank")
 def list_bank_questions(
     subject_id: Optional[int] = None,
     unit_id: Optional[int] = None,
+    doc_id: Optional[int] = None,
     blooms_level: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    q = db.query(QuestionBankMaster)
+    # Defer large text/blob columns and eagerly load the unit relationship
+    q = db.query(QuestionBankMaster).options(
+        defer(QuestionBankMaster.embedding),
+        defer(QuestionBankMaster.normalized_text),
+        joinedload(QuestionBankMaster.unit)
+    )
     if subject_id:
         q = q.filter(QuestionBankMaster.subject_id == subject_id)
     if unit_id:
         q = q.filter(QuestionBankMaster.unit_id == unit_id)
+    if doc_id:
+        q = q.filter(QuestionBankMaster.doc_id == doc_id)
     if blooms_level:
         q = q.filter(QuestionBankMaster.blooms_level == blooms_level)
     
     questions = q.all()
-    units = {u.id: u for u in db.query(SyllabusUnit).all()}
     result = []
     for bq in questions:
+        unit = bq.unit
         result.append({
             "id": bq.id,
             "question_no": bq.question_no,
@@ -432,7 +524,8 @@ def list_bank_questions(
             "blooms_level": bq.blooms_level,
             "question_type": bq.question_type,
             "unit_id": bq.unit_id,
-            "unit_title": units[bq.unit_id].unit_title if bq.unit_id and bq.unit_id in units else None,
+            "unit_no": unit.unit_no if unit else None,
+            "unit_title": unit.unit_title if unit else None,
             "created_at": bq.created_at.isoformat() if bq.created_at else None,
         })
     return result
@@ -485,6 +578,139 @@ def delete_bank_question(question_id: int, db: Session = Depends(get_db)):
     return {"message": "Deleted"}
 
 
+# ─── JSON Question Bank Import ────────────────────────────────────────────────
+
+@app.post("/question-bank/import-json")
+async def import_json_question_bank(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Import a structured JSON question bank (the output format of the OCR pipeline).
+    Auto-creates subject + units if needed, then directly imports questions into master bank.
+    Expected JSON shape:
+      { subject_name, subject_code, regulation, semester, department,
+        sections: [ { section_name, questions: [ {question_no, question_text, marks, blooms_level, unit_no} ] } ] }
+    """
+    raw = await file.read()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+
+    subject_name = (data.get("subject_name") or "").strip().upper()
+    subject_code = (data.get("subject_code") or "").strip().upper()
+    regulation_name = (data.get("regulation") or "R2021").strip()
+    semester_raw = data.get("semester")
+    department_name = (data.get("department") or "GENERAL").strip().upper()
+
+    if not subject_name or not subject_code:
+        raise HTTPException(status_code=400, detail="JSON must contain subject_name and subject_code")
+
+    # ── Get or create Regulation ──
+    regulation = db.query(Regulation).filter(Regulation.name == regulation_name).first()
+    if not regulation:
+        regulation = Regulation(name=regulation_name)
+        db.add(regulation); db.commit(); db.refresh(regulation)
+
+    # ── Get or create Department ──
+    dept_code = "".join(w[0] for w in department_name.split()[:4]) or "GEN"
+    department = db.query(Department).filter(Department.name == department_name).first()
+    if not department:
+        department = Department(name=department_name, code=dept_code)
+        db.add(department); db.commit(); db.refresh(department)
+
+    # ── Get or create Subject ──
+    subject = db.query(Subject).filter(
+        Subject.code == subject_code,
+        Subject.department_id == department.id
+    ).first()
+    if not subject:
+        sem_val = 1
+        if semester_raw:
+            try:
+                sem_val = int(str(semester_raw).strip())
+            except ValueError:
+                from ocr_pipeline import roman_to_int
+                try:
+                    sem_val = roman_to_int(str(semester_raw).strip())
+                except Exception:
+                    sem_val = 1
+        subject = Subject(
+            name=subject_name,
+            code=subject_code,
+            semester=sem_val,
+            department_id=department.id,
+            regulation_id=regulation.id
+        )
+        db.add(subject); db.commit(); db.refresh(subject)
+
+    # ── Collect all unit numbers used and create SyllabusUnits ──
+    all_unit_nos = set()
+    for section in data.get("sections", []):
+        for q in section.get("questions", []):
+            u = q.get("unit_no")
+            if u:
+                all_unit_nos.add(int(u))
+
+    existing_units = {u.unit_no: u for u in db.query(SyllabusUnit).filter(
+        SyllabusUnit.subject_id == subject.id
+    ).all()}
+
+    for unit_no in sorted(all_unit_nos):
+        if unit_no not in existing_units:
+            unit = SyllabusUnit(
+                subject_id=subject.id,
+                unit_no=unit_no,
+                unit_title=f"Unit {unit_no}"
+            )
+            db.add(unit); db.commit(); db.refresh(unit)
+            existing_units[unit_no] = unit
+
+    # ── Import questions directly to master bank ──
+    imported = 0
+    skipped = 0
+    for section in data.get("sections", []):
+        section_name = section.get("section_name", "GENERAL")
+        for q in section.get("questions", []):
+            qtext = (q.get("question_text") or "").strip()
+            if not qtext or len(qtext) < 6:
+                skipped += 1
+                continue
+
+            unit_no = q.get("unit_no")
+            unit_obj = existing_units.get(int(unit_no)) if unit_no else None
+
+            normalized = normalize_question(qtext)
+            embedding = encode_text(normalized)
+
+            master = QuestionBankMaster(
+                subject_id=subject.id,
+                unit_id=unit_obj.id if unit_obj else None,
+                section_name=section_name,
+                question_no=q.get("question_no"),
+                question_text=qtext,
+                normalized_text=normalized,
+                marks=q.get("marks"),
+                blooms_level=q.get("blooms_level"),
+                question_type=q.get("question_type", "short"),
+                embedding=embedding_to_json(embedding) if embedding is not None else None,
+            )
+            db.add(master)
+            imported += 1
+
+    db.commit()
+    return {
+        "subject_id": subject.id,
+        "subject_name": subject.name,
+        "subject_code": subject.code,
+        "imported_count": imported,
+        "skipped_count": skipped,
+        "units_created": len(all_unit_nos),
+        "message": f"Successfully imported {imported} questions for {subject_name} ({subject_code})"
+    }
+
+
 # ─── Exam Paper Upload + Analysis ─────────────────────────────────────────────
 
 @app.post("/exam-paper/upload-analyze")
@@ -524,6 +750,35 @@ async def upload_and_analyze_exam(
     try:
         # OCR
         raw_text, questions = await process_uploaded_file(file_bytes, file.filename)
+        
+        # ─── Perfect AI Extraction Fallback ───
+        # If GOOGLE_API_KEY is present, we use the "Perfect Prompt" to clean the extraction
+        # This fixes bugs like stray numbers, watermark noise, and trailing digits.
+        if os.getenv("GOOGLE_API_KEY"):
+            try:
+                from ai_extractor import extract_questions_with_ai
+                ai_questions = extract_questions_with_ai(raw_text)
+                if ai_questions and len(ai_questions) > 0:
+                    logger.info(f"AI-Enhanced extraction SUCCESS: {len(ai_questions)} questions found.")
+                    questions = ai_questions
+                else:
+                    logger.warning("AI extraction returned empty. Keeping local OCR results.")
+            except Exception as ai_err:
+                logger.error(f"AI Enhancement failed: {ai_err}. Using local OCR fallback.")
+        
+        # NEW: Subject Auto-Detection logic
+        from ocr_pipeline import HEADER_PATTERNS
+        detected_code = None
+        detected_name = None
+        for pattern_name, pattern in HEADER_PATTERNS.items():
+            m = pattern.search(raw_text[:2000])
+            if m:
+                val = m.group(1).strip()
+                if pattern_name == "subject_code": detected_code = val
+                if pattern_name == "subject_name": detected_name = val
+        
+        logger.info(f"Detected in paper: Code={detected_code}, Name={detected_name}")
+
         if not questions:
             doc.status = "error"
             db.commit()
@@ -537,7 +792,7 @@ async def upload_and_analyze_exam(
             )
             raise HTTPException(status_code=400, detail=detail)
 
-        # Fetch question bank for this subject
+        # Fetch and PRE-PARSE question bank for this subject
         bank_questions_db = db.query(QuestionBankMaster).filter(
             QuestionBankMaster.subject_id == subject_id
         ).all()
@@ -558,6 +813,10 @@ async def upload_and_analyze_exam(
                 "unit_no": unit.unit_no if unit else None,
                 "unit_title": unit.unit_title if unit else None,
             })
+            
+        # Optimization: Pre-parse embeddings once
+        from matcher import prepare_bank_embeddings
+        prepared_bank = prepare_bank_embeddings(bank_q_list)
 
         # Process each exam question
         match_results_list = []
@@ -588,9 +847,9 @@ async def upload_and_analyze_exam(
                 "blooms_level": eq.blooms_level,
             })
 
-            # Match against bank
+            # Match against bank using PRE-PARSED embeddings
             best_bq, score, match_status = match_exam_to_bank(
-                normalized, embedding, bank_q_list
+                normalized, embedding, prepared_bank
             )
 
             mr = MatchResult(
@@ -660,7 +919,17 @@ def get_exam_report(exam_id: int, db: Session = Depends(get_db)):
 def list_exam_papers(subject_id: Optional[int] = None, db: Session = Depends(get_db)):
     q = db.query(ExamPaper)
     if subject_id:
-        q = q.filter(ExamPaper.subject_id == subject_id)
+        # If subject_id is provided, find all subjects with the same name and code
+        # to ensure we show papers across departments if they share the same subject.
+        subj = db.query(Subject).filter(Subject.id == subject_id).first()
+        if subj:
+            related_ids = [s.id for s in db.query(Subject).filter(
+                Subject.name == subj.name,
+                Subject.code == subj.code
+            ).all()]
+            q = q.filter(ExamPaper.subject_id.in_(related_ids))
+        else:
+            q = q.filter(ExamPaper.subject_id == subject_id)
     papers = q.order_by(ExamPaper.analyzed_at.desc()).all()
     
     subjects = {s.id: s.name for s in db.query(Subject).all()}
@@ -680,14 +949,30 @@ def list_exam_papers(subject_id: Optional[int] = None, db: Session = Depends(get
     return result
 
 
+@app.delete("/exam-papers/{paper_id}")
+def delete_exam_paper(paper_id: int, db: Session = Depends(get_db)):
+    paper = db.query(ExamPaper).filter(ExamPaper.id == paper_id).first()
+    if not paper:
+        raise HTTPException(status_code=404, detail="Exam paper not found")
+    
+    # Relationships with cascade will handle other tables
+    db.delete(paper)
+    db.commit()
+    return {"status": "success", "message": "Exam paper and related analysis deleted"}
+
+
 # ─── Dashboard Summary ────────────────────────────────────────────────────────
 
 @app.get("/dashboard/summary")
 def dashboard_summary(db: Session = Depends(get_db)):
-    total_bank = db.query(QuestionBankMaster).count()
+    total_bank_qs = db.query(QuestionBankMaster).count()
     total_exams = db.query(ExamPaper).count()
     total_subjects = db.query(Subject).count()
-    total_docs = db.query(UploadedDocument).count()
+    
+    # Meaningful documents: Approved exam papers + Distinct Bank docs
+    # This avoids showing '73' when most are failed uploads or noise.
+    active_bank_docs = db.query(QuestionBankMaster.doc_id).distinct().count()
+    total_docs = total_exams + active_bank_docs
     
     # Recent exam coverage
     recent_reports = []
@@ -696,21 +981,24 @@ def dashboard_summary(db: Session = Depends(get_db)):
     for exam in recent_exams:
         cr = db.query(CoverageReport).filter(CoverageReport.exam_paper_id == exam.id).first()
         if cr:
-            data = json.loads(cr.report_data)
-            recent_reports.append({
-                "exam_id": exam.id,
-                "subject": subjects_map.get(exam.subject_id, "Unknown"),
-                "exam_type": exam.exam_type,
-                "overall_coverage_pct": data.get("overall_coverage_pct", 0),
-                "weighted_coverage_pct": data.get("weighted_coverage_pct", 0),
-                "analyzed_at": exam.analyzed_at.isoformat() if exam.analyzed_at else None,
-            })
+            try:
+                data = json.loads(cr.report_data)
+                recent_reports.append({
+                    "exam_id": exam.id,
+                    "subject": subjects_map.get(exam.subject_id, "Unknown"),
+                    "exam_type": exam.exam_type,
+                    "overall_coverage_pct": data.get("overall_coverage_pct", 0),
+                    "weighted_coverage_pct": data.get("weighted_coverage_pct", 0),
+                    "analyzed_at": exam.analyzed_at.isoformat() if exam.analyzed_at else None,
+                })
+            except:
+                continue
 
     return {
-        "total_bank_questions": total_bank,
+        "total_bank_questions": total_bank_qs,
         "total_exam_papers": total_exams,
         "total_subjects": total_subjects,
-        "total_documents": total_docs,
+        "total_bank_docs": active_bank_docs,
         "recent_coverage": recent_reports,
     }
 

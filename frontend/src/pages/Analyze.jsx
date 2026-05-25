@@ -12,24 +12,39 @@ const BLOOMS_COLORS = {
 };
 
 function CoverageRing({ pct, label, size = 160 }) {
-    const r = 60;
+    const strokeWidth = size / 10;
+    const r = (size - strokeWidth) / 2;
     const circ = 2 * Math.PI * r;
     const dashOffset = circ - (pct / 100) * circ;
-    const color = pct >= 70 ? '#22c55e' : pct >= 40 ? '#f59e0b' : '#ef4444';
+    const color = pct >= 70 ? 'var(--color-success)' : pct >= 40 ? 'var(--color-warning)' : 'var(--color-danger)';
 
     return (
-        <div className="coverage-ring-container">
-            <div className="coverage-ring" style={{ width: size, height: size }}>
-                <svg width={size} height={size} viewBox="0 0 160 160">
-                    <circle cx="80" cy="80" r={r} fill="none" stroke="var(--color-surface-2)" strokeWidth="14" />
-                    <circle cx="80" cy="80" r={r} fill="none" stroke={color} strokeWidth="14"
-                        strokeDasharray={circ} strokeDashoffset={dashOffset} strokeLinecap="round"
-                        style={{ filter: `drop-shadow(0 0 8px ${color}88)`, transition: 'stroke-dashoffset 1s ease' }} />
-                </svg>
-                <div className="coverage-ring-label">
-                    <div className="coverage-ring-pct" style={{ color }}>{pct.toFixed(1)}%</div>
-                    <div className="coverage-ring-sub">{label || 'Coverage'}</div>
-                </div>
+        <div className="coverage-ring" style={{ width: size, height: size }}>
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                <circle 
+                    cx={size/2} cy={size/2} r={r} 
+                    fill="none" 
+                    stroke="var(--color-surface-3)" 
+                    strokeWidth={strokeWidth} 
+                    opacity="0.3"
+                />
+                <circle
+                    cx={size/2} cy={size/2} r={r}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={circ}
+                    strokeDashoffset={dashOffset}
+                    strokeLinecap="round"
+                    style={{ 
+                        filter: `drop-shadow(0 0 ${size/10}px ${color})`, 
+                        transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }}
+                />
+            </svg>
+            <div className="coverage-ring-label">
+                <div className="coverage-ring-pct" style={{ fontSize: size/4.5, color }}>{pct.toFixed(1)}%</div>
+                <div className="coverage-ring-sub" style={{ fontSize: size/12 }}>{label || 'MATCH'}</div>
             </div>
         </div>
     );
@@ -58,6 +73,28 @@ export default function Analyze() {
 
     useEffect(() => { getSubjects().then(r => setSubjects(r.data)); }, []);
 
+    const handleUploadOnly = async () => {
+        if (!file) { flash('error', 'Drop an exam paper first'); return; }
+        setLoading(true);
+        setResult(null);
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('subject_id', selectedSubject || 1); // Temporary ID for detection
+        try {
+            // We'll use a new endpoint or just parse the first 1000 chars to detect subject
+            const r = await uploadAndAnalyzeExam(fd); 
+            // In a real scenario, we'd have a separate 'preview' endpoint. 
+            // For now, we'll use the result to show the questions and let user fix them.
+            setResult(r.data);
+            flash('success', 'Questions extracted! Please review below.');
+            setActiveTab('questions');
+        } catch (err) {
+            flash('error', 'Extraction failed. Check file format.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleAnalyze = async () => {
         if (!file || !selectedSubject) { flash('error', 'Select subject and upload exam paper'); return; }
         setLoading(true);
@@ -70,7 +107,8 @@ export default function Analyze() {
         try {
             const r = await uploadAndAnalyzeExam(fd);
             setResult(r.data);
-            flash('success', 'Analysis complete!');
+            flash('success', 'Analysis complete! See the coverage report.');
+            setActiveTab('overview');
         } catch (err) {
             flash('error', err.response?.data?.detail || 'Analysis failed. Ensure question bank exists for this subject.');
         } finally {
@@ -121,6 +159,8 @@ export default function Analyze() {
                         </div>
                     </div>
 
+
+
                     <div
                         className={`upload-zone ${dragOver ? 'dragover' : ''}`}
                         onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -138,16 +178,26 @@ export default function Analyze() {
                         <input type="file" ref={fileRef} accept=".pdf,.jpg,.jpeg,.png" onChange={e => setFile(e.target.files[0])} style={{ display: 'none' }} />
                     </div>
 
-                    <button
-                        className="btn btn-primary btn-lg w-full"
-                        style={{ marginTop: 16 }}
-                        disabled={!file || !selectedSubject || loading}
-                        onClick={handleAnalyze}
-                    >
-                        {loading
-                            ? <><div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> Analyzing — this may take a minute...</>
-                            : <><TrendingUp size={18} /> Run Coverage Analysis</>}
-                    </button>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                        <button
+                            className="btn btn-secondary btn-lg"
+                            style={{ flex: 1 }}
+                            disabled={!file || loading}
+                            onClick={handleUploadOnly}
+                        >
+                            {loading ? <div className="spinner" /> : <><FileSearch size={18} /> Extract & Review</>}
+                        </button>
+                        <button
+                            className={`btn btn-lg ${(!file || !selectedSubject || loading) ? 'btn-secondary' : 'btn-primary'}`}
+                            style={{ flex: 2 }}
+                            disabled={!file || !selectedSubject || loading}
+                            onClick={handleAnalyze}
+                        >
+                            {loading
+                                ? <><div className="spinner" /> Analyzing...</>
+                                : <><TrendingUp size={18} /> Run Full Coverage Analysis</>}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Results */}
@@ -170,19 +220,19 @@ export default function Analyze() {
                                     <div className="stat-card danger"><div className="stat-label">Not Matched</div><div className="stat-value">{cov.not_matched}</div></div>
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                    <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                                        <div className="card-title">Question Count Coverage</div>
-                                        <CoverageRing pct={cov.overall_coverage_pct} label="Count" />
-                                        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                                            {cov.matched} of {cov.total_exam_questions} exam questions found in bank
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                                    <div className="card glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 32 }}>
+                                        <div className="card-title" style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Question Count Coverage</div>
+                                        <CoverageRing pct={cov.overall_coverage_pct} label="COUNT" size={180} />
+                                        <div style={{ fontSize: 14, color: 'var(--color-text-dim)', textAlign: 'center', maxWidth: 240 }}>
+                                            <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{cov.matched}</span> of <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{cov.total_exam_questions}</span> exam questions found in bank
                                         </div>
                                     </div>
-                                    <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-                                        <div className="card-title">Marks-Weighted Coverage</div>
-                                        <CoverageRing pct={cov.weighted_coverage_pct} label="Weighted" />
-                                        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', textAlign: 'center' }}>
-                                            Coverage weighted by question marks
+                                    <div className="card glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: 32 }}>
+                                        <div className="card-title" style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Marks-Weighted Coverage</div>
+                                        <CoverageRing pct={cov.weighted_coverage_pct} label="WEIGHTED" size={180} />
+                                        <div style={{ fontSize: 14, color: 'var(--color-text-dim)', textAlign: 'center', maxWidth: 240 }}>
+                                            Coverage accuracy adjusted by question marks distribution
                                         </div>
                                     </div>
                                 </div>
@@ -215,21 +265,32 @@ export default function Analyze() {
                                     <tbody>
                                         {result.match_results.map((mr, i) => (
                                             <tr key={i} style={{
-                                                background: mr.match_status === 'matched' ? 'rgba(34,197,94,0.04)'
-                                                    : mr.match_status === 'possible' ? 'rgba(245,158,11,0.04)' : 'rgba(239,68,68,0.04)'
+                                                background: mr.match_status === 'matched' ? 'rgba(34,197,94,0.06)'
+                                                    : mr.match_status === 'possible' ? 'rgba(245,158,11,0.06)' : 'rgba(239,68,68,0.06)',
+                                                borderLeft: mr.match_status === 'matched' ? '4px solid #22c55e'
+                                                    : mr.match_status === 'possible' ? '4px solid #f59e0b' : '4px solid #ef4444'
                                             }}>
-                                                <td style={{ color: 'var(--color-text-dim)', fontSize: 12 }}>{i + 1}</td>
-                                                <td style={{ fontSize: 13 }}>{mr.exam_question_text}</td>
-                                                <td>{mr.blooms_level ? <span className="badge badge-info">{mr.blooms_level}</span> : '—'}</td>
+                                                <td style={{ color: 'var(--color-text-dim)', fontSize: 12, paddingLeft: 12 }}>{i + 1}</td>
+                                                <td style={{ fontSize: 13, fontWeight: 500 }}>{mr.exam_question_text}</td>
+                                                <td>{mr.blooms_level ? <span className="badge badge-info">{mr.blooms_level}</span> : <span className="badge" style={{background: '#475569', color: '#fff'}}>?</span>}</td>
                                                 <td>{mr.marks ? <span className="badge badge-muted">{mr.marks}M</span> : '—'}</td>
                                                 <td><MatchBadge status={mr.match_status} /></td>
-                                                <td style={{ fontFamily: 'Space Grotesk', fontSize: 13, fontWeight: 600 }}>
-                                                    <span style={{ color: mr.similarity_score >= 0.72 ? 'var(--color-success)' : mr.similarity_score >= 0.5 ? 'var(--color-warning)' : 'var(--color-danger)' }}>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    <div style={{
+                                                        fontSize: 14, fontWeight: 700,
+                                                        color: mr.similarity_score >= 0.8 ? '#22c55e' : mr.similarity_score >= 0.6 ? '#f59e0b' : '#ef4444',
+                                                        textShadow: '0 0 10px currentColor88'
+                                                    }}>
                                                         {(mr.similarity_score * 100).toFixed(1)}%
-                                                    </span>
+                                                    </div>
+                                                    <div style={{ fontSize: 10, color: 'var(--color-text-dim)', marginTop: 2 }}>similarity</div>
                                                 </td>
-                                                <td style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-                                                    {mr.bank_question_text || <em style={{ color: 'var(--color-danger)', opacity: 0.7 }}>No match found</em>}
+                                                <td style={{ fontSize: 12, lineHeight: 1.4 }}>
+                                                    {mr.bank_question_text ? (
+                                                        <div style={{ background: 'rgba(255,255,255,0.03)', padding: 8, borderRadius: 6, border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                            {mr.bank_question_text}
+                                                        </div>
+                                                    ) : <em style={{ color: 'var(--color-danger)', opacity: 0.7 }}>No semantic match in bank</em>}
                                                 </td>
                                             </tr>
                                         ))}

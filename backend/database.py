@@ -53,7 +53,7 @@ class Subject(Base):
 class SyllabusUnit(Base):
     __tablename__ = "syllabus_units"
     id = Column(Integer, primary_key=True, index=True)
-    subject_id = Column(Integer, ForeignKey("subjects.id"))
+    subject_id = Column(Integer, ForeignKey("subjects.id"), index=True)
     unit_no = Column(Integer, nullable=False)
     unit_title = Column(String(200), nullable=False)
     keywords = Column(Text, nullable=True)          # comma-separated keywords for unit detection
@@ -81,6 +81,7 @@ class UploadedDocument(Base):
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     status = Column(String(30), default="processing")  # processing | staged | approved | error
     uploaded_by = Column(String(100), nullable=True)
+    subject = relationship("Subject")
     staging_questions = relationship("QuestionStagingReview", back_populates="document")
 
 
@@ -88,7 +89,7 @@ class QuestionStagingReview(Base):
     """Temporary holding area — faculty reviews & corrects before final save"""
     __tablename__ = "question_staging_review"
     id = Column(Integer, primary_key=True, index=True)
-    doc_id = Column(Integer, ForeignKey("uploaded_documents.id"))
+    doc_id = Column(Integer, ForeignKey("uploaded_documents.id"), index=True)
     subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
     unit_id = Column(Integer, ForeignKey("syllabus_units.id"), nullable=True)
     predicted_unit_id = Column(Integer, ForeignKey("syllabus_units.id"), nullable=True)
@@ -103,15 +104,16 @@ class QuestionStagingReview(Base):
     edited_by = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     document = relationship("UploadedDocument", back_populates="staging_questions")
+    unit = relationship("SyllabusUnit", foreign_keys=[unit_id])
 
 
 class QuestionBankMaster(Base):
     """Final approved question bank"""
     __tablename__ = "question_bank_master"
     id = Column(Integer, primary_key=True, index=True)
-    subject_id = Column(Integer, ForeignKey("subjects.id"))
-    unit_id = Column(Integer, ForeignKey("syllabus_units.id"), nullable=True)
-    doc_id = Column(Integer, ForeignKey("uploaded_documents.id"), nullable=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), index=True)
+    unit_id = Column(Integer, ForeignKey("syllabus_units.id"), nullable=True, index=True)
+    doc_id = Column(Integer, ForeignKey("uploaded_documents.id"), nullable=True, index=True)
     section_name = Column(String(50), nullable=True)
     question_no = Column(String(20), nullable=True)
     question_text = Column(Text, nullable=False)
@@ -135,8 +137,8 @@ class ExamPaper(Base):
     exam_type = Column(String(50), nullable=True)       # Internal / University / CAT
     exam_date = Column(String(20), nullable=True)
     analyzed_at = Column(DateTime, default=datetime.utcnow)
-    extracted_questions = relationship("ExtractedExamQuestion", back_populates="exam_paper")
-    coverage_reports = relationship("CoverageReport", back_populates="exam_paper")
+    extracted_questions = relationship("ExtractedExamQuestion", back_populates="exam_paper", cascade="all, delete-orphan")
+    coverage_reports = relationship("CoverageReport", back_populates="exam_paper", cascade="all, delete-orphan")
 
 
 class ExtractedExamQuestion(Base):
@@ -151,7 +153,7 @@ class ExtractedExamQuestion(Base):
     blooms_level = Column(String(10), nullable=True)
     embedding = Column(Text, nullable=True)
     exam_paper = relationship("ExamPaper", back_populates="extracted_questions")
-    match_results = relationship("MatchResult", back_populates="exam_question")
+    match_results = relationship("MatchResult", back_populates="exam_question", cascade="all, delete-orphan")
 
 
 class MatchResult(Base):

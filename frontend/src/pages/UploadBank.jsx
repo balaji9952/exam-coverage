@@ -1,18 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
-import { getSubjects, getUnits, uploadQuestionBank, getStagingQuestions, updateStagingQuestions, approveStaging } from '../api';
-import { UploadCloud, CheckCircle2, Save, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getSubjects, getUnits, uploadQuestionBank, importJsonQuestionBank, getStagingQuestions, updateStagingQuestions, approveStaging } from '../api';
+import { UploadCloud, CheckCircle2, Save, ChevronRight, AlertTriangle, RefreshCw, Settings2 } from 'lucide-react';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 const BLOOMS = ['K1', 'K2', 'K3', 'K4', 'K5', 'K6'];
 
 export default function UploadBank() {
     const [step, setStep] = useState(1);
     const [subjects, setSubjects] = useState([]);
+    const [subjectsLoading, setSubjectsLoading] = useState(true);
+    const [subjectsError, setSubjectsError] = useState('');
     const [units, setUnits] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState('');
     const [selectedUnit, setSelectedUnit] = useState('');
     const [file, setFile] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+    
+    // Progress States
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [phase, setPhase] = useState('');
+    
     const [staging, setStaging] = useState([]);
     const [docId, setDocId] = useState(null);
     const [msg, setMsg] = useState({ type: '', text: '' });
@@ -21,46 +31,89 @@ export default function UploadBank() {
 
     const flash = (type, text) => { setMsg({ type, text }); setTimeout(() => setMsg({ type: '', text: '' }), 6000); };
 
-    useEffect(() => { getSubjects().then(r => setSubjects(r.data)); }, []);
-    useEffect(() => { if (selectedSubject) getUnits(selectedSubject).then(r => setUnits(r.data)); }, [selectedSubject]);
-
-    const handleDrop = (e) => {
-        e.preventDefault(); setDragOver(false);
-        const f = e.dataTransfer.files[0];
-        if (f) setFile(f);
+    const loadSubjects = async () => {
+        setSubjectsLoading(true);
+        setSubjectsError('');
+        try {
+            const r = await getSubjects();
+            const items = Array.isArray(r.data) ? r.data : [];
+            setSubjects(items);
+            
+            // Auto-select from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const subId = urlParams.get('subject_id');
+            if (subId) {
+                setSelectedSubject(subId);
+            } else if (items.length === 1 && !selectedSubject) {
+                setSelectedSubject(String(items[0].id));
+            }
+        } catch (err) {
+            setSubjects([]);
+            setSubjectsError('Could not load subjects from the backend.');
+        } finally {
+            setSubjectsLoading(false);
+        }
     };
+
+    useEffect(() => { loadSubjects(); }, []);
+
+    useEffect(() => {
+        if (!selectedSubject) { setUnits([]); return; }
+        getUnits(selectedSubject).then(r => setUnits(r.data)).catch(() => setUnits([]));
+    }, [selectedSubject]);
 
     const handleUpload = async () => {
         if (!file || !selectedSubject) { flash('error', 'Please select a subject and file'); return; }
+        
         setUploading(true);
+        setProgress(0);
+        setPhase('Initializing...');
         setZeroWarning(null);
+
+        const progressInterval = setInterval(() => {
+            setProgress(prev => {
+                if (prev < 20) { setPhase('Uploading file...'); return prev + 2; }
+                if (prev < 50) { setPhase('Analyzing layout & OCR...'); return prev + 1; }
+                if (prev < 85) { setPhase('Extracting structured questions...'); return prev + 0.5; }
+                if (prev < 98) { setPhase('Generating semantic embeddings...'); return prev + 0.2; }
+                return prev;
+            });
+        }, 300);
+
         const fd = new FormData();
         fd.append('file', file);
         fd.append('subject_id', selectedSubject);
         if (selectedUnit) fd.append('unit_id', selectedUnit);
         fd.append('uploaded_by', 'faculty');
+
         try {
+            if (file.name.endsWith('.json')) {
+                const r = await importJsonQuestionBank(fd);
+                flash('success', `✅ Successfully imported ${r.data.imported_count} questions!`);
+                setStep(3);
+                return;
+            }
+
             const r = await uploadQuestionBank(fd);
             const data = r.data;
             setDocId(data.doc_id);
 
             if (data.extracted_count === 0) {
-                // Show warning + raw text debug info, stay on step 1
                 setZeroWarning({
-                    warning: data.warning || data.message || '0 questions extracted.',
+                    warning: data.warning || '0 questions extracted.',
                     raw_text_preview: data.raw_text_preview || '',
-                    status: data.status,
                 });
-                flash('error', '0 questions extracted — see the diagnosis below');
             } else {
+                setPhase('Finalizing review state...');
+                setProgress(100);
                 const stagingRes = await getStagingQuestions(data.doc_id);
                 setStaging(stagingRes.data.map(q => ({ ...q, _edited: false })));
-                setStep(2);
-                flash('success', `✅ Extracted ${data.extracted_count} questions — please review`);
+                setTimeout(() => setStep(2), 500);
             }
         } catch (err) {
             flash('error', err.response?.data?.detail || 'Upload failed');
         } finally {
+            clearInterval(progressInterval);
             setUploading(false);
         }
     };
@@ -91,6 +144,10 @@ export default function UploadBank() {
     const handleFinalApprove = async () => {
         const toApprove = staging.filter(q => q.review_status === 'approved').map(q => q.id);
         if (toApprove.length === 0) { flash('error', 'No questions marked as approved'); return; }
+        await handleFinalApproveCall(toApprove);
+    };
+
+    const handleFinalApproveCall = async (ids) => {
         const edited = staging.filter(q => q._edited);
         if (edited.length > 0) {
             await updateStagingQuestions(edited.map(q => ({
@@ -99,7 +156,7 @@ export default function UploadBank() {
                 review_status: q.review_status
             })));
         }
-        await approveStaging(toApprove);
+        await approveStaging(ids);
         setStep(3);
     };
 
@@ -107,12 +164,12 @@ export default function UploadBank() {
 
     return (
         <div className="fade-in">
+            <LoadingOverlay isVisible={uploading} phase={phase} progress={progress} />
             <div className="page-header">
                 <div className="page-title">Upload Question Bank</div>
                 <div className="page-subtitle">Upload PDF or image → AI extracts questions → Review → Save to database</div>
             </div>
             <div className="page-body">
-
                 {/* Progress Steps */}
                 <div style={{ display: 'flex', gap: 0, marginBottom: 28, alignItems: 'center' }}>
                     {[['1', 'Upload'], ['2', 'Review'], ['3', 'Done']].map(([n, label], i) => (
@@ -144,7 +201,6 @@ export default function UploadBank() {
                     </div>
                 )}
 
-                {/* Step 1: Upload */}
                 {step === 1 && (
                     <div>
                         <div className="card">
@@ -157,7 +213,7 @@ export default function UploadBank() {
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Unit (optional — can assign in review)</label>
+                                    <label className="form-label">Unit (optional)</label>
                                     <select className="form-control" value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)} disabled={!selectedSubject}>
                                         <option value="">All units / assign later</option>
                                         {units.map(u => <option key={u.id} value={u.id}>Unit {u.unit_no}: {u.unit_title}</option>)}
@@ -165,118 +221,48 @@ export default function UploadBank() {
                                 </div>
                             </div>
 
+
+
                             <div
                                 className={`upload-zone ${dragOver ? 'dragover' : ''}`}
                                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                                 onDragLeave={() => setDragOver(false)}
-                                onDrop={handleDrop}
+                                onDrop={(e) => { e.preventDefault(); setDragOver(false); setFile(e.dataTransfer.files[0]); }}
                                 onClick={() => fileRef.current.click()}
                             >
                                 <div className="upload-zone-icon">📄</div>
                                 {file ? (
-                                    <><h3 style={{ color: 'var(--color-success)' }}>✓ {file.name}</h3><p>{(file.size / 1024).toFixed(1)} KB — ready to upload</p></>
+                                    <><h3 style={{ color: 'var(--color-success)' }}>✓ {file.name}</h3><p>{(file.size / 1024).toFixed(1)} KB — ready</p></>
                                 ) : (
-                                    <><h3>Drop your question bank here</h3><p>PDF or image (JPG, PNG) — AI will extract questions automatically</p></>
+                                    <><h3>Drop your question bank here</h3><p>PDF, JSON, or image</p></>
                                 )}
-                                <input type="file" ref={fileRef} accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.txt" onChange={e => setFile(e.target.files[0])} style={{ display: 'none' }} />
+                                <input type="file" ref={fileRef} onChange={e => setFile(e.target.files[0])} style={{ display: 'none' }} />
                             </div>
 
-                            <button
-                                className="btn btn-primary btn-lg w-full"
-                                disabled={!file || !selectedSubject || uploading}
-                                onClick={handleUpload}
-                                style={{ marginTop: 20 }}
-                            >
-                                {uploading
-                                    ? <><div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} /> Extracting questions — please wait...</>
-                                    : <><UploadCloud size={18} /> Upload & Extract Questions</>}
+                            <button className="btn btn-lg btn-primary w-full mt-2" disabled={!file || !selectedSubject || uploading} onClick={handleUpload}>
+                                <UploadCloud size={18} /> Upload & Extract Questions
                             </button>
                         </div>
-
-                        {/* 0-question warning box */}
+                        
                         {zeroWarning && (
-                            <div className="card" style={{ marginTop: 16, border: '1px solid var(--color-warning)', background: 'rgba(245,158,11,0.06)' }}>
-                                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 14 }}>
-                                    <AlertTriangle size={20} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 2 }} />
-                                    <div>
-                                        <div style={{ fontWeight: 600, color: 'var(--color-warning)', marginBottom: 6 }}>No questions extracted</div>
-                                        <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>{zeroWarning.warning}</div>
-                                    </div>
-                                </div>
-
-                                <div style={{ marginBottom: 12 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                        Possible Reasons & Fixes
-                                    </div>
-                                    {[
-                                        ['📄 Typed PDF', 'If pdfplumber extracted text → check that questions have numbers like "1." "1)" "Q1" "(1)" "(a)" "a."'],
-                                        ['🖼️ Scanned / image PDF', 'Install Tesseract OCR → https://github.com/UB-Mannheim/tesseract/wiki — then restart backend'],
-                                        ['📋 Non-standard format', 'Questions without numbers were not detected. Try adding numbers to your question bank before upload, or use the Manual Add feature.'],
-                                        ['🔤 .txt file', 'You can also paste your questions into a .txt file with one question per line, each starting with a number like "1. Define..."'],
-                                    ].map(([title, desc]) => (
-                                        <div key={title} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--color-border)' }}>
-                                            <span style={{ fontSize: 13, minWidth: 140 }}>{title}</span>
-                                            <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{desc}</span>
-                                        </div>
-                                    ))}
-                                </div>
-
+                            <div className="card mt-2 alert alert-error">
+                                <div style={{ fontWeight: 600 }}>{zeroWarning.warning}</div>
                                 {zeroWarning.raw_text_preview && (
-                                    <div>
-                                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                            Raw Text Extracted by OCR (first 2000 chars)
-                                        </div>
-                                        <pre style={{
-                                            background: 'var(--color-surface-2)', padding: 12,
-                                            borderRadius: 'var(--radius-sm)', fontSize: 11,
-                                            color: 'var(--color-text-muted)', overflowX: 'auto',
-                                            whiteSpace: 'pre-wrap', maxHeight: 280, overflowY: 'auto',
-                                            border: '1px solid var(--color-border)'
-                                        }}>
-                                            {zeroWarning.raw_text_preview || '(empty — no text was extracted from the file)'}
-                                        </pre>
-                                    </div>
+                                    <pre style={{ marginTop: 10, fontSize: 11, background: 'rgba(0,0,0,0.1)', padding: 10, borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
+                                        {zeroWarning.raw_text_preview}
+                                    </pre>
                                 )}
-
-                                {/* Quick debug link */}
-                                <div style={{ marginTop: 14, fontSize: 12, color: 'var(--color-text-dim)' }}>
-                                    💡 Advanced: Use the <a href="http://localhost:8000/docs#/default/preview_raw_text_debug_raw_text_post" target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary-light)' }}>
-                                        /debug/raw-text endpoint in Swagger UI
-                                    </a> to inspect what OCR sees from your file.
-                                </div>
                             </div>
                         )}
-
-                        {/* Tips */}
-                        <div className="card" style={{ marginTop: 16 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>✅ Supported Question Formats</div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                                {[
-                                    ['1. Question text', '1) Question text'],
-                                    ['Q1. Question text', 'Q.1 Question text'],
-                                    ['(1) Question text', '(a) Question text'],
-                                    ['a. Question text', 'i. Question text'],
-                                ].map(([a, b]) => (
-                                    <div key={a} style={{ display: 'flex', gap: 16 }}>
-                                        <code style={{ fontSize: 11, color: 'var(--color-success)', background: 'var(--color-success-bg)', padding: '2px 6px', borderRadius: 4 }}>{a}</code>
-                                        <code style={{ fontSize: 11, color: 'var(--color-success)', background: 'var(--color-success-bg)', padding: '2px 6px', borderRadius: 4 }}>{b}</code>
-                                    </div>
-                                ))}
-                            </div>
-                            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-text-dim)' }}>
-                                Bloom's levels auto-detected: K1–K6 labels, or BTL-1 through BTL-6, or command verbs (define, explain, analyze, design...)
-                            </div>
-                        </div>
                     </div>
                 )}
 
-                {/* Step 2: Review Table */}
                 {step === 2 && (
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                             <div>
-                                <div style={{ fontWeight: 600 }}>{staging.length} questions extracted — review before saving</div>
-                                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{approvedCount} approved • {staging.length - approvedCount} pending</div>
+                                <div style={{ fontWeight: 600 }}>{staging.length} questions extracted</div>
+                                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{approvedCount} approved</div>
                             </div>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 <button className="btn btn-secondary btn-sm" onClick={approveAll}>✓ Approve All</button>
@@ -291,42 +277,25 @@ export default function UploadBank() {
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>✓</th><th>Q.No</th><th>Section</th><th style={{ minWidth: 320 }}>Question Text</th>
-                                        <th>Marks</th><th>Bloom</th><th>Unit</th>
+                                        <th>✓</th><th>Q.No</th><th>Text</th><th>Marks</th><th>Bloom</th><th>Unit</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {staging.map(q => (
-                                        <tr key={q.id} style={{ background: q.review_status === 'approved' ? 'rgba(34,197,94,0.05)' : undefined }}>
+                                        <tr key={q.id}>
+                                            <td><input type="checkbox" checked={q.review_status === 'approved'} onChange={() => toggleApprove(q.id)} /></td>
+                                            <td>{q.question_no}</td>
+                                            <td><textarea className="form-control" value={q.question_text} onChange={e => updateLocal(q.id, 'question_text', e.target.value)} /></td>
+                                            <td><input type="number" className="form-control" style={{ width: 60 }} value={q.marks || ''} onChange={e => updateLocal(q.id, 'marks', e.target.value)} /></td>
                                             <td>
-                                                <input type="checkbox" checked={q.review_status === 'approved'} onChange={() => toggleApprove(q.id)}
-                                                    style={{ accentColor: 'var(--color-primary)', width: 16, height: 16 }} />
-                                            </td>
-                                            <td style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{q.question_no || '—'}</td>
-                                            <td><span className="badge badge-muted">{q.section_name || '—'}</span></td>
-                                            <td>
-                                                <textarea rows={2} className="form-control"
-                                                    value={q.question_text}
-                                                    onChange={e => updateLocal(q.id, 'question_text', e.target.value)}
-                                                    style={{ resize: 'vertical', minHeight: 56 }} />
-                                                {q._edited && <div style={{ fontSize: 10, color: 'var(--color-warning)', marginTop: 2 }}>• Edited</div>}
-                                            </td>
-                                            <td>
-                                                <input type="number" className="form-control" style={{ width: 70 }}
-                                                    value={q.marks || ''} placeholder="—"
-                                                    onChange={e => updateLocal(q.id, 'marks', parseFloat(e.target.value) || null)} />
-                                            </td>
-                                            <td>
-                                                <select className="form-control" style={{ width: 80 }}
-                                                    value={q.blooms_level || ''} onChange={e => updateLocal(q.id, 'blooms_level', e.target.value)}>
+                                                <select className="form-control" value={q.blooms_level || ''} onChange={e => updateLocal(q.id, 'blooms_level', e.target.value)}>
                                                     <option value="">—</option>
                                                     {BLOOMS.map(b => <option key={b} value={b}>{b}</option>)}
                                                 </select>
                                             </td>
                                             <td>
-                                                <select className="form-control" style={{ width: 160 }}
-                                                    value={q.unit_id || ''} onChange={e => updateLocal(q.id, 'unit_id', e.target.value)}>
-                                                    <option value="">— Assign —</option>
+                                                <select className="form-control" value={q.unit_id || ''} onChange={e => updateLocal(q.id, 'unit_id', e.target.value)}>
+                                                    <option value="">—</option>
                                                     {units.map(u => <option key={u.id} value={u.id}>Unit {u.unit_no}</option>)}
                                                 </select>
                                             </td>
@@ -338,19 +307,18 @@ export default function UploadBank() {
                     </div>
                 )}
 
-                {/* Step 3: Done */}
                 {step === 3 && (
                     <div className="card" style={{ textAlign: 'center', padding: 60 }}>
                         <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
-                        <h2 style={{ fontFamily: 'Space Grotesk', fontSize: 24, marginBottom: 8 }}>Question Bank Updated!</h2>
-                        <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>
-                            {approvedCount} questions have been approved and saved to the database.
-                        </p>
+                        <h2 style={{ marginBottom: 8 }}>Question Bank Updated!</h2>
+                        <p style={{ color: 'var(--color-text-muted)', marginBottom: 24 }}>Your master question bank is ready for analysis.</p>
                         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-                            <button className="btn btn-primary" onClick={() => { setStep(1); setFile(null); setStaging([]); setZeroWarning(null); }}>
-                                <UploadCloud size={16} /> Upload Another
+                            <button className="btn btn-secondary" onClick={() => { setStep(1); setFile(null); }}>
+                                <RefreshCw size={18} /> Upload Another
                             </button>
-                            <a href="/question-bank" className="btn btn-secondary">View Question Bank</a>
+                            <Link to="/analyze" className="btn btn-primary">
+                                <ChevronRight size={18} /> Go to Exam Analysis
+                            </Link>
                         </div>
                     </div>
                 )}

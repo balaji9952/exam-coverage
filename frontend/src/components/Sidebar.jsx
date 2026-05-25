@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
     LayoutDashboard, BookOpen, UploadCloud, FileSearch,
     BarChart3, Settings, ChevronRight, GraduationCap, Database
@@ -20,7 +21,15 @@ export default function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">
-                <div className="sidebar-logo-icon">🎯</div>
+                <motion.div 
+                    className="sidebar-logo-icon"
+                    animate={{ 
+                        boxShadow: ["0 0 16px rgba(99, 102, 241, 0.2)", "0 0 32px rgba(99, 102, 241, 0.4)", "0 0 16px rgba(99, 102, 241, 0.2)"] 
+                    }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                >
+                    🎯
+                </motion.div>
                 <div className="sidebar-logo-text">
                     <h2>ExamCoverage</h2>
                     <span>AI Analysis Platform</span>
@@ -41,21 +50,36 @@ export default function Sidebar() {
                             )}
                             <NavLink
                                 to={item.to}
-                                className={`nav-item ${isActive ? 'active' : ''}`}
+                                className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                             >
-                                <item.icon size={16} />
-                                {item.label}
-                                {isActive && <ChevronRight size={14} style={{ marginLeft: 'auto' }} />}
+                                <motion.div
+                                    whileHover={{ x: 4 }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}
+                                >
+                                    <item.icon size={18} />
+                                    <span style={{ flex: 1 }}>{item.label}</span>
+                                    {isActive && <ChevronRight size={14} style={{ opacity: 0.8 }} />}
+                                </motion.div>
                             </NavLink>
                         </div>
                     );
                 })}
             </nav>
 
-            <div style={{ padding: '16px', borderTop: '1px solid var(--color-border)' }}>
-                <div style={{ fontSize: 12, color: 'var(--color-text-dim)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ padding: '20px', borderTop: '1px solid var(--color-border)' }}>
+                <div style={{ 
+                    fontSize: 11, 
+                    color: 'var(--color-text-dim)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8,
+                    background: 'rgba(255,255,255,0.03)',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--color-border)'
+                }}>
                     <GraduationCap size={14} />
-                    AI-Powered • v1.0.0
+                    <span>AI-Powered • v1.1.0</span>
                 </div>
             </div>
         </aside>

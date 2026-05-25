@@ -1,0 +1,1253 @@
+Name:              extract_questions_from_pdf_tables
+Filename:          D:\man\man\backend\ocr_pipeline.py
+Argument count:    1
+Positional-only arguments: 0
+Kw-only arguments: 0
+Number of locals:  48
+Stack size:        15
+Flags:             OPTIMIZED, NEWLOCALS, COROUTINE
+Constants:
+   0: "\n    Handles the tabular question bank layout with all edge cases:\n    - Header may embed section name: 'Questions\nPART A'\n    - Wide tables (>4 cols) on some pages\n    - Marks split across lines: '6\n7' = 13\n    - Unit description rows appear before the real header\n    "
+   1: 0
+   2: None
+   3: 'GENERAL'
+   4: frozenset({'cgpa', 'temperature', 'play tennis', 'assess', 's.no', 'outlook', 'wind', 'result', 'day', 'humidity'})
+   5: <code object is_data_table at 0x00000175DFDFDD30, file "D:\man\man\backend\ocr_pipeline.py", line 664>
+   6: <code object find_header_row at 0x00000175DFD52730, file "D:\man\man\backend\ocr_pipeline.py", line 668>
+   7: <code object parse_marks at 0x00000175DFD528B0, file "D:\man\man\backend\ocr_pipeline.py", line 677>
+   8: <code object section_from_cell at 0x00000175DFA56870, file "D:\man\man\backend\ocr_pipeline.py", line 685>
+   9: 'lines'
+  10: 6
+  11: 3
+  12: ('vertical_strategy', 'horizontal_strategy', 'snap_tolerance', 'join_tolerance', 'text_x_tolerance', 'text_y_tolerance')
+  13: ''
+  14: '\n'
+  15: 2
+  16: 1
+  17: 'q'
+  18: 'qno'
+  19: 'm'
+  20: 'bl'
+  21: '^\\d{1,3}[\\.\\)]?.*$'
+  22: -1
+  23: 'question_no'
+  24: '?'
+  25: ('question_no', 'section_name', 'question_text', 'marks', 'blooms_level', 'unit_no', 'unit_title')
+  26: 'question_text'
+  27: 'question'
+  28: <code object <genexpr> at 0x00000175DFE10C70, file "D:\man\man\backend\ocr_pipeline.py", line 764>
+  29: ('q. no', 'q.no', 'q no', 'sl.', 'no.')
+  30: 'mark'
+  31: <code object <genexpr> at 0x00000175DFE11610, file "D:\man\man\backend\ocr_pipeline.py", line 768>
+  32: ('knowl', 'level', 'bloom', 'btl')
+  33: 'nc'
+  34: <code object sg at 0x00000175DFA7FAF0, file "D:\man\man\backend\ocr_pipeline.py", line 792>
+  35: 200
+  36: 10
+  37: 5
+  38: ('question_no', 'section_name', 'question_text', 'marks', 'blooms_level', 'question_type', 'unit_no', 'unit_title')
+  39: 'marks'
+  40: 'blooms_level'
+  41: 'question_type'
+Names:
+   0: pdfplumber
+   1: open
+   2: io
+   3: BytesIO
+   4: pages
+   5: extract_text
+   6: split
+   7: UNIT_HEADER_PATTERN
+   8: match
+   9: strip
+  10: group
+  11: isdigit
+  12: int
+  13: roman_to_int
+  14: extract_tables
+  15: len
+  16: get
+  17: str
+  18: extract_blooms
+  19: is_junk_question
+  20: bool
+  21: re
+  22: append
+  23: clean_question_text
+  24: enumerate
+  25: lower
+  26: any
+  27: SECTION_PATTERNS
+  28: upper
+  29: join
+  30: extract_marks
+  31: classify_question_type
+Variable names:
+   0: file_bytes
+   1: pdfplumber
+   2: questions
+   3: current_unit_no
+   4: current_unit_title
+   5: current_section
+   6: is_data_table
+   7: find_header_row
+   8: parse_marks
+   9: section_from_cell
+  10: pdf
+  11: table_settings
+  12: last_col_map
+  13: page
+  14: page_text
+  15: line
+  16: um
+  17: u_str
+  18: table
+  19: h_idx
+  20: h_row
+  21: qc_old
+  22: qnoc_old
+  23: mc_old
+  24: blc_old
+  25: self_qno
+  26: self_qtext
+  27: self_marks
+  28: self_blooms
+  29: is_new_orphan
+  30: col
+  31: start_idx
+  32: i
+  33: cell
+  34: sec
+  35: qc
+  36: qnoc
+  37: mc
+  38: blc
+  39: sg
+  40: qno
+  41: qtext
+  42: lines
+  43: marks
+  44: blooms
+  45: is_new
+  46: clean
+  47: q
+Cell variables:
+   0: DATA_TABLE_KEYS
+   1: cl
+   2: row
+
+              0 MAKE_CELL               48 (DATA_TABLE_KEYS)
+              2 MAKE_CELL               49 (cl)
+              4 MAKE_CELL               50 (row)
+
+646           6 RETURN_GENERATOR
+              8 POP_TOP
+             10 RESUME                   0
+
+654          12 LOAD_CONST               1 (0)
+             14 LOAD_CONST               2 (None)
+             16 IMPORT_NAME              0 (pdfplumber)
+             18 STORE_FAST               1 (pdfplumber)
+
+656          20 BUILD_LIST               0
+             22 STORE_FAST               2 (questions)
+
+657          24 LOAD_CONST               1 (0)
+             26 STORE_FAST               3 (current_unit_no)
+
+658          28 LOAD_CONST               2 (None)
+             30 STORE_FAST               4 (current_unit_title)
+
+659          32 LOAD_CONST               3 ('GENERAL')
+             34 STORE_FAST               5 (current_section)
+
+661          36 BUILD_SET                0
+             38 LOAD_CONST               4 (frozenset({'cgpa', 'temperature', 'play tennis', 'assess', 's.no', 'outlook', 'wind', 'result', 'day', 'humidity'}))
+             40 SET_UPDATE               1
+             42 STORE_DEREF             48 (DATA_TABLE_KEYS)
+
+664          44 LOAD_CLOSURE            48 (DATA_TABLE_KEYS)
+             46 BUILD_TUPLE              1
+             48 LOAD_CONST               5 (<code object is_data_table at 0x00000175DFDFDD30, file "D:\man\man\backend\ocr_pipeline.py", line 664>)
+             50 MAKE_FUNCTION            8 (closure)
+             52 STORE_FAST               6 (is_data_table)
+
+668          54 LOAD_CONST               6 (<code object find_header_row at 0x00000175DFD52730, file "D:\man\man\backend\ocr_pipeline.py", line 668>)
+             56 MAKE_FUNCTION            0
+             58 STORE_FAST               7 (find_header_row)
+
+677          60 LOAD_CONST               7 (<code object parse_marks at 0x00000175DFD528B0, file "D:\man\man\backend\ocr_pipeline.py", line 677>)
+             62 MAKE_FUNCTION            0
+             64 STORE_FAST               8 (parse_marks)
+
+685          66 LOAD_CONST               8 (<code object section_from_cell at 0x00000175DFA56870, file "D:\man\man\backend\ocr_pipeline.py", line 685>)
+             68 MAKE_FUNCTION            0
+             70 STORE_FAST               9 (section_from_cell)
+
+691          72 LOAD_FAST                1 (pdfplumber)
+             74 LOAD_METHOD              1 (open)
+             96 LOAD_GLOBAL              5 (NULL + io)
+            108 LOAD_ATTR                3 (BytesIO)
+            118 LOAD_FAST                0 (file_bytes)
+            120 PRECALL                  1
+            124 CALL                     1
+            134 PRECALL                  1
+            138 CALL                     1
+            148 BEFORE_WITH
+            150 STORE_FAST              10 (pdf)
+
+694         152 LOAD_CONST               9 ('lines')
+
+695         154 LOAD_CONST               9 ('lines')
+
+696         156 LOAD_CONST              10 (6)
+
+697         158 LOAD_CONST              10 (6)
+
+698         160 LOAD_CONST              11 (3)
+
+699         162 LOAD_CONST              11 (3)
+
+693         164 LOAD_CONST              12 (('vertical_strategy', 'horizontal_strategy', 'snap_tolerance', 'join_tolerance', 'text_x_tolerance', 'text_y_tolerance'))
+            166 BUILD_CONST_KEY_MAP      6
+            168 STORE_FAST              11 (table_settings)
+
+702         170 LOAD_CONST               2 (None)
+            172 STORE_FAST              12 (last_col_map)
+
+704         174 LOAD_FAST               10 (pdf)
+            176 LOAD_ATTR                4 (pages)
+            186 GET_ITER
+        >>  188 EXTENDED_ARG             7
+            190 FOR_ITER              1960 (to 4112)
+            192 STORE_FAST              13 (page)
+
+705         194 LOAD_FAST               13 (page)
+            196 LOAD_METHOD              5 (extract_text)
+            218 PRECALL                  0
+            222 CALL                     0
+            232 JUMP_IF_TRUE_OR_POP      1 (to 236)
+            234 LOAD_CONST              13 ('')
+        >>  236 STORE_FAST              14 (page_text)
+
+707         238 LOAD_FAST               14 (page_text)
+            240 LOAD_METHOD              6 (split)
+            262 LOAD_CONST              14 ('\n')
+            264 PRECALL                  1
+            268 CALL                     1
+            278 GET_ITER
+        >>  280 FOR_ITER               166 (to 614)
+            282 STORE_FAST              15 (line)
+
+708         284 LOAD_GLOBAL             14 (UNIT_HEADER_PATTERN)
+            296 LOAD_METHOD              8 (match)
+            318 LOAD_FAST               15 (line)
+            320 LOAD_METHOD              9 (strip)
+            342 PRECALL                  0
+            346 CALL                     0
+            356 PRECALL                  1
+            360 CALL                     1
+            370 STORE_FAST              16 (um)
+
+709         372 LOAD_FAST               16 (um)
+            374 POP_JUMP_FORWARD_IF_FALSE   118 (to 612)
+
+710         376 LOAD_FAST               16 (um)
+            378 LOAD_METHOD             10 (group)
+            400 LOAD_CONST              15 (2)
+            402 PRECALL                  1
+            406 CALL                     1
+            416 STORE_FAST              17 (u_str)
+
+711         418 LOAD_FAST               17 (u_str)
+            420 LOAD_METHOD             11 (isdigit)
+            442 PRECALL                  0
+            446 CALL                     0
+            456 POP_JUMP_FORWARD_IF_FALSE    15 (to 488)
+            458 LOAD_GLOBAL             25 (NULL + int)
+            470 LOAD_FAST               17 (u_str)
+            472 PRECALL                  1
+            476 CALL                     1
+            486 JUMP_FORWARD            14 (to 516)
+        >>  488 LOAD_GLOBAL             27 (NULL + roman_to_int)
+            500 LOAD_FAST               17 (u_str)
+            502 PRECALL                  1
+            506 CALL                     1
+        >>  516 STORE_FAST               3 (current_unit_no)
+            518 JUMP_FORWARD             7 (to 534)
+        >>  520 PUSH_EXC_INFO
+
+712         522 POP_TOP
+            524 POP_EXCEPT
+            526 JUMP_FORWARD             3 (to 534)
+        >>  528 COPY                     3
+            530 POP_EXCEPT
+            532 RERAISE                  1
+
+713     >>  534 LOAD_FAST               16 (um)
+            536 LOAD_METHOD             10 (group)
+            558 LOAD_CONST              11 (3)
+            560 PRECALL                  1
+            564 CALL                     1
+            574 LOAD_METHOD              9 (strip)
+            596 PRECALL                  0
+            600 CALL                     0
+            610 STORE_FAST               4 (current_unit_title)
+        >>  612 JUMP_BACKWARD          167 (to 280)
+
+715     >>  614 LOAD_FAST               13 (page)
+            616 LOAD_METHOD             14 (extract_tables)
+            638 LOAD_FAST               11 (table_settings)
+            640 PRECALL                  1
+            644 CALL                     1
+            654 JUMP_IF_TRUE_OR_POP      1 (to 658)
+            656 BUILD_LIST               0
+        >>  658 GET_ITER
+        >>  660 EXTENDED_ARG             6
+            662 FOR_ITER              1722 (to 4108)
+            664 STORE_FAST              18 (table)
+
+716         666 LOAD_FAST               18 (table)
+            668 POP_JUMP_FORWARD_IF_FALSE    19 (to 708)
+            670 LOAD_GLOBAL             31 (NULL + len)
+            682 LOAD_FAST               18 (table)
+            684 PRECALL                  1
+            688 CALL                     1
+            698 LOAD_CONST              16 (1)
+            700 COMPARE_OP               0 (<)
+            706 POP_JUMP_FORWARD_IF_FALSE     1 (to 710)
+
+717     >>  708 JUMP_BACKWARD           25 (to 660)
+
+718     >>  710 PUSH_NULL
+            712 LOAD_FAST                6 (is_data_table)
+            714 LOAD_FAST               18 (table)
+            716 LOAD_CONST               1 (0)
+            718 BINARY_SUBSCR
+            728 PRECALL                  1
+            732 CALL                     1
+            742 POP_JUMP_FORWARD_IF_FALSE     1 (to 746)
+
+719         744 JUMP_BACKWARD           43 (to 660)
+
+721     >>  746 PUSH_NULL
+            748 LOAD_FAST                7 (find_header_row)
+            750 LOAD_FAST               18 (table)
+            752 PRECALL                  1
+            756 CALL                     1
+            766 UNPACK_SEQUENCE          2
+            770 STORE_FAST              19 (h_idx)
+            772 STORE_FAST              20 (h_row)
+
+724         774 LOAD_FAST               19 (h_idx)
+            776 EXTENDED_ARG             2
+            778 POP_JUMP_FORWARD_IF_NONE   629 (to 2038)
+            780 LOAD_FAST               19 (h_idx)
+            782 LOAD_CONST               1 (0)
+            784 COMPARE_OP               4 (>)
+            790 EXTENDED_ARG             2
+            792 POP_JUMP_FORWARD_IF_FALSE   622 (to 2038)
+            794 LOAD_FAST               12 (last_col_map)
+            796 EXTENDED_ARG             2
+            798 POP_JUMP_FORWARD_IF_FALSE   619 (to 2038)
+
+726         800 LOAD_FAST               12 (last_col_map)
+            802 LOAD_METHOD             16 (get)
+            824 LOAD_CONST              17 ('q')
+            826 LOAD_CONST              16 (1)
+            828 PRECALL                  2
+            832 CALL                     2
+            842 STORE_FAST              21 (qc_old)
+
+727         844 LOAD_FAST               12 (last_col_map)
+            846 LOAD_METHOD             16 (get)
+            868 LOAD_CONST              18 ('qno')
+            870 LOAD_CONST               1 (0)
+            872 PRECALL                  2
+            876 CALL                     2
+            886 STORE_FAST              22 (qnoc_old)
+
+728         888 LOAD_FAST               12 (last_col_map)
+            890 LOAD_METHOD             16 (get)
+            912 LOAD_CONST              19 ('m')
+            914 LOAD_GLOBAL             31 (NULL + len)
+            926 LOAD_FAST               18 (table)
+            928 LOAD_CONST               1 (0)
+            930 BINARY_SUBSCR
+            940 PRECALL                  1
+            944 CALL                     1
+            954 LOAD_CONST              15 (2)
+            956 COMPARE_OP               4 (>)
+            962 POP_JUMP_FORWARD_IF_FALSE    24 (to 1012)
+            964 LOAD_GLOBAL             31 (NULL + len)
+            976 LOAD_FAST               18 (table)
+            978 LOAD_CONST               1 (0)
+            980 BINARY_SUBSCR
+            990 PRECALL                  1
+            994 CALL                     1
+           1004 LOAD_CONST              15 (2)
+           1006 BINARY_OP               10 (-)
+           1010 JUMP_FORWARD             1 (to 1014)
+        >> 1012 LOAD_CONST               2 (None)
+        >> 1014 PRECALL                  2
+           1018 CALL                     2
+           1028 STORE_FAST              23 (mc_old)
+
+729        1030 LOAD_FAST               12 (last_col_map)
+           1032 LOAD_METHOD             16 (get)
+           1054 LOAD_CONST              20 ('bl')
+           1056 LOAD_GLOBAL             31 (NULL + len)
+           1068 LOAD_FAST               18 (table)
+           1070 LOAD_CONST               1 (0)
+           1072 BINARY_SUBSCR
+           1082 PRECALL                  1
+           1086 CALL                     1
+           1096 LOAD_CONST              16 (1)
+           1098 COMPARE_OP               4 (>)
+           1104 POP_JUMP_FORWARD_IF_FALSE    24 (to 1154)
+           1106 LOAD_GLOBAL             31 (NULL + len)
+           1118 LOAD_FAST               18 (table)
+           1120 LOAD_CONST               1 (0)
+           1122 BINARY_SUBSCR
+           1132 PRECALL                  1
+           1136 CALL                     1
+           1146 LOAD_CONST              16 (1)
+           1148 BINARY_OP               10 (-)
+           1152 JUMP_FORWARD             1 (to 1156)
+        >> 1154 LOAD_CONST               2 (None)
+        >> 1156 PRECALL                  2
+           1160 CALL                     2
+           1170 STORE_FAST              24 (blc_old)
+
+731        1172 LOAD_FAST               18 (table)
+           1174 LOAD_CONST               2 (None)
+           1176 LOAD_FAST               19 (h_idx)
+           1178 BUILD_SLICE              2
+           1180 BINARY_SUBSCR
+           1190 GET_ITER
+        >> 1192 EXTENDED_ARG             1
+           1194 FOR_ITER               421 (to 2038)
+           1196 STORE_DEREF             50 (row)
+
+733        1198 LOAD_FAST               22 (qnoc_old)
+           1200 LOAD_GLOBAL             31 (NULL + len)
+           1212 LOAD_DEREF              50 (row)
+           1214 PRECALL                  1
+           1218 CALL                     1
+           1228 COMPARE_OP               0 (<)
+           1234 POP_JUMP_FORWARD_IF_FALSE    41 (to 1318)
+           1236 LOAD_GLOBAL             35 (NULL + str)
+           1248 LOAD_DEREF              50 (row)
+           1250 LOAD_FAST               22 (qnoc_old)
+           1252 BINARY_SUBSCR
+           1262 JUMP_IF_TRUE_OR_POP      1 (to 1266)
+           1264 LOAD_CONST              13 ('')
+        >> 1266 PRECALL                  1
+           1270 CALL                     1
+           1280 LOAD_METHOD              9 (strip)
+           1302 PRECALL                  0
+           1306 CALL                     0
+           1316 JUMP_FORWARD             1 (to 1320)
+        >> 1318 LOAD_CONST              13 ('')
+        >> 1320 STORE_FAST              25 (self_qno)
+
+734        1322 LOAD_FAST               21 (qc_old)
+           1324 LOAD_GLOBAL             31 (NULL + len)
+           1336 LOAD_DEREF              50 (row)
+           1338 PRECALL                  1
+           1342 CALL                     1
+           1352 COMPARE_OP               0 (<)
+           1358 POP_JUMP_FORWARD_IF_FALSE    41 (to 1442)
+           1360 LOAD_GLOBAL             35 (NULL + str)
+           1372 LOAD_DEREF              50 (row)
+           1374 LOAD_FAST               21 (qc_old)
+           1376 BINARY_SUBSCR
+           1386 JUMP_IF_TRUE_OR_POP      1 (to 1390)
+           1388 LOAD_CONST              13 ('')
+        >> 1390 PRECALL                  1
+           1394 CALL                     1
+           1404 LOAD_METHOD              9 (strip)
+           1426 PRECALL                  0
+           1430 CALL                     0
+           1440 JUMP_FORWARD             1 (to 1444)
+        >> 1442 LOAD_CONST              13 ('')
+        >> 1444 STORE_FAST              26 (self_qtext)
+
+735        1446 LOAD_FAST               26 (self_qtext)
+           1448 EXTENDED_ARG             1
+           1450 POP_JUMP_FORWARD_IF_FALSE   291 (to 2034)
+
+736        1452 LOAD_FAST               23 (mc_old)
+           1454 POP_JUMP_FORWARD_IF_FALSE    51 (to 1558)
+           1456 LOAD_FAST               23 (mc_old)
+           1458 LOAD_GLOBAL             31 (NULL + len)
+           1470 LOAD_DEREF              50 (row)
+           1472 PRECALL                  1
+           1476 CALL                     1
+           1486 COMPARE_OP               0 (<)
+           1492 POP_JUMP_FORWARD_IF_FALSE    32 (to 1558)
+           1494 PUSH_NULL
+           1496 LOAD_FAST                8 (parse_marks)
+           1498 LOAD_GLOBAL             35 (NULL + str)
+           1510 LOAD_DEREF              50 (row)
+           1512 LOAD_FAST               23 (mc_old)
+           1514 BINARY_SUBSCR
+           1524 JUMP_IF_TRUE_OR_POP      1 (to 1528)
+           1526 LOAD_CONST              13 ('')
+        >> 1528 PRECALL                  1
+           1532 CALL                     1
+           1542 PRECALL                  1
+           1546 CALL                     1
+           1556 JUMP_FORWARD             1 (to 1560)
+        >> 1558 LOAD_CONST               2 (None)
+        >> 1560 STORE_FAST              27 (self_marks)
+
+737        1562 LOAD_FAST               24 (blc_old)
+           1564 POP_JUMP_FORWARD_IF_FALSE    55 (to 1676)
+           1566 LOAD_FAST               24 (blc_old)
+           1568 LOAD_GLOBAL             31 (NULL + len)
+           1580 LOAD_DEREF              50 (row)
+           1582 PRECALL                  1
+           1586 CALL                     1
+           1596 COMPARE_OP               0 (<)
+           1602 POP_JUMP_FORWARD_IF_FALSE    36 (to 1676)
+           1604 LOAD_GLOBAL             37 (NULL + extract_blooms)
+           1616 LOAD_GLOBAL             35 (NULL + str)
+           1628 LOAD_DEREF              50 (row)
+           1630 LOAD_FAST               24 (blc_old)
+           1632 BINARY_SUBSCR
+           1642 JUMP_IF_TRUE_OR_POP      1 (to 1646)
+           1644 LOAD_CONST              13 ('')
+        >> 1646 PRECALL                  1
+           1650 CALL                     1
+           1660 PRECALL                  1
+           1664 CALL                     1
+           1674 JUMP_FORWARD             1 (to 1678)
+        >> 1676 LOAD_CONST               2 (None)
+        >> 1678 STORE_FAST              28 (self_blooms)
+
+740        1680 LOAD_GLOBAL             39 (NULL + is_junk_question)
+           1692 LOAD_FAST               25 (self_qno)
+           1694 LOAD_FAST               26 (self_qtext)
+           1696 LOAD_FAST               27 (self_marks)
+           1698 LOAD_FAST               28 (self_blooms)
+           1700 PRECALL                  4
+           1704 CALL                     4
+           1714 POP_JUMP_FORWARD_IF_FALSE     2 (to 1720)
+
+741        1716 EXTENDED_ARG             1
+           1718 JUMP_BACKWARD          264 (to 1192)
+
+743     >> 1720 LOAD_GLOBAL             41 (NULL + bool)
+           1732 LOAD_GLOBAL             43 (NULL + re)
+           1744 LOAD_ATTR                8 (match)
+           1754 LOAD_CONST              21 ('^\\d{1,3}[\\.\\)]?.*$')
+           1756 LOAD_FAST               25 (self_qno)
+           1758 PRECALL                  2
+           1762 CALL                     2
+           1772 PRECALL                  1
+           1776 CALL                     1
+           1786 STORE_FAST              29 (is_new_orphan)
+
+744        1788 LOAD_FAST               29 (is_new_orphan)
+           1790 POP_JUMP_FORWARD_IF_TRUE     4 (to 1800)
+           1792 LOAD_FAST               25 (self_qno)
+           1794 POP_JUMP_FORWARD_IF_TRUE    79 (to 1954)
+           1796 LOAD_FAST               27 (self_marks)
+           1798 POP_JUMP_FORWARD_IF_FALSE    77 (to 1954)
+
+745     >> 1800 LOAD_FAST                2 (questions)
+           1802 LOAD_METHOD             22 (append)
+
+746        1824 LOAD_FAST               25 (self_qno)
+           1826 POP_JUMP_FORWARD_IF_FALSE     2 (to 1832)
+           1828 LOAD_FAST               25 (self_qno)
+           1830 JUMP_FORWARD            30 (to 1892)
+        >> 1832 LOAD_FAST                2 (questions)
+           1834 POP_JUMP_FORWARD_IF_FALSE    27 (to 1890)
+           1836 LOAD_FAST                2 (questions)
+           1838 LOAD_CONST              22 (-1)
+           1840 BINARY_SUBSCR
+           1850 LOAD_METHOD             16 (get)
+           1872 LOAD_CONST              23 ('question_no')
+           1874 PRECALL                  1
+           1878 CALL                     1
+           1888 JUMP_FORWARD             1 (to 1892)
+        >> 1890 LOAD_CONST              24 ('?')
+
+747     >> 1892 LOAD_FAST                5 (current_section)
+
+748        1894 LOAD_GLOBAL             47 (NULL + clean_question_text)
+           1906 LOAD_FAST               26 (self_qtext)
+           1908 PRECALL                  1
+           1912 CALL                     1
+
+749        1922 LOAD_FAST               27 (self_marks)
+           1924 LOAD_FAST               28 (self_blooms)
+
+750        1926 LOAD_FAST                3 (current_unit_no)
+           1928 LOAD_FAST                4 (current_unit_title)
+
+745        1930 LOAD_CONST              25 (('question_no', 'section_name', 'question_text', 'marks', 'blooms_level', 'unit_no', 'unit_title'))
+           1932 BUILD_CONST_KEY_MAP      7
+           1934 PRECALL                  1
+           1938 CALL                     1
+           1948 POP_TOP
+           1950 EXTENDED_ARG             1
+           1952 JUMP_BACKWARD          381 (to 1192)
+
+752     >> 1954 LOAD_FAST                2 (questions)
+           1956 POP_JUMP_FORWARD_IF_FALSE    38 (to 2034)
+
+753        1958 LOAD_FAST                2 (questions)
+           1960 LOAD_CONST              22 (-1)
+           1962 BINARY_SUBSCR
+           1972 LOAD_CONST              26 ('question_text')
+           1974 COPY                     2
+           1976 COPY                     2
+           1978 BINARY_SUBSCR
+           1988 LOAD_CONST              14 ('\n')
+           1990 LOAD_GLOBAL             47 (NULL + clean_question_text)
+           2002 LOAD_FAST               26 (self_qtext)
+           2004 PRECALL                  1
+           2008 CALL                     1
+           2018 BINARY_OP                0 (+)
+           2022 BINARY_OP               13 (+=)
+           2026 SWAP                     3
+           2028 SWAP                     2
+           2030 STORE_SUBSCR
+        >> 2034 EXTENDED_ARG             1
+           2036 JUMP_BACKWARD          423 (to 1192)
+
+755     >> 2038 BUILD_MAP                0
+           2040 STORE_FAST              30 (col)
+
+756        2042 LOAD_CONST               1 (0)
+           2044 STORE_FAST              31 (start_idx)
+
+757        2046 LOAD_FAST               20 (h_row)
+           2048 POP_JUMP_FORWARD_IF_NONE   239 (to 2528)
+
+758        2050 LOAD_GLOBAL             49 (NULL + enumerate)
+           2062 LOAD_FAST               20 (h_row)
+           2064 PRECALL                  1
+           2068 CALL                     1
+           2078 GET_ITER
+        >> 2080 FOR_ITER               155 (to 2392)
+           2082 UNPACK_SEQUENCE          2
+           2086 STORE_FAST              32 (i)
+           2088 STORE_FAST              33 (cell)
+
+759        2090 LOAD_GLOBAL             35 (NULL + str)
+           2102 LOAD_FAST               33 (cell)
+           2104 JUMP_IF_TRUE_OR_POP      1 (to 2108)
+           2106 LOAD_CONST              13 ('')
+        >> 2108 PRECALL                  1
+           2112 CALL                     1
+           2122 LOAD_METHOD             25 (lower)
+           2144 PRECALL                  0
+           2148 CALL                     0
+           2158 STORE_DEREF             49 (cl)
+
+760        2160 LOAD_CONST              27 ('question')
+           2162 LOAD_DEREF              49 (cl)
+           2164 CONTAINS_OP              0
+           2166 POP_JUMP_FORWARD_IF_FALSE    36 (to 2240)
+
+761        2168 LOAD_FAST               32 (i)
+           2170 LOAD_FAST               30 (col)
+           2172 LOAD_CONST              17 ('q')
+           2174 STORE_SUBSCR
+
+762        2178 PUSH_NULL
+           2180 LOAD_FAST                9 (section_from_cell)
+           2182 LOAD_GLOBAL             35 (NULL + str)
+           2194 LOAD_FAST               33 (cell)
+           2196 JUMP_IF_TRUE_OR_POP      1 (to 2200)
+           2198 LOAD_CONST              13 ('')
+        >> 2200 PRECALL                  1
+           2204 CALL                     1
+           2214 PRECALL                  1
+           2218 CALL                     1
+           2228 STORE_FAST              34 (sec)
+
+763        2230 LOAD_FAST               34 (sec)
+           2232 POP_JUMP_FORWARD_IF_FALSE     2 (to 2238)
+           2234 LOAD_FAST               34 (sec)
+           2236 STORE_FAST               5 (current_section)
+        >> 2238 JUMP_BACKWARD           80 (to 2080)
+
+764     >> 2240 LOAD_GLOBAL             53 (NULL + any)
+           2252 LOAD_CLOSURE            49 (cl)
+           2254 BUILD_TUPLE              1
+           2256 LOAD_CONST              28 (<code object <genexpr> at 0x00000175DFE10C70, file "D:\man\man\backend\ocr_pipeline.py", line 764>)
+           2258 MAKE_FUNCTION            8 (closure)
+           2260 LOAD_CONST              29 (('q. no', 'q.no', 'q no', 'sl.', 'no.'))
+           2262 GET_ITER
+           2264 PRECALL                  0
+           2268 CALL                     0
+           2278 PRECALL                  1
+           2282 CALL                     1
+           2292 POP_JUMP_FORWARD_IF_FALSE     6 (to 2306)
+
+765        2294 LOAD_FAST               32 (i)
+           2296 LOAD_FAST               30 (col)
+           2298 LOAD_CONST              18 ('qno')
+           2300 STORE_SUBSCR
+           2304 JUMP_BACKWARD          113 (to 2080)
+
+766     >> 2306 LOAD_CONST              30 ('mark')
+           2308 LOAD_DEREF              49 (cl)
+           2310 CONTAINS_OP              0
+           2312 POP_JUMP_FORWARD_IF_FALSE     6 (to 2326)
+
+767        2314 LOAD_FAST               32 (i)
+           2316 LOAD_FAST               30 (col)
+           2318 LOAD_CONST              19 ('m')
+           2320 STORE_SUBSCR
+           2324 JUMP_BACKWARD          123 (to 2080)
+
+768     >> 2326 LOAD_GLOBAL             53 (NULL + any)
+           2338 LOAD_CLOSURE            49 (cl)
+           2340 BUILD_TUPLE              1
+           2342 LOAD_CONST              31 (<code object <genexpr> at 0x00000175DFE11610, file "D:\man\man\backend\ocr_pipeline.py", line 768>)
+           2344 MAKE_FUNCTION            8 (closure)
+           2346 LOAD_CONST              32 (('knowl', 'level', 'bloom', 'btl'))
+           2348 GET_ITER
+           2350 PRECALL                  0
+           2354 CALL                     0
+           2364 PRECALL                  1
+           2368 CALL                     1
+           2378 POP_JUMP_FORWARD_IF_FALSE     5 (to 2390)
+
+769        2380 LOAD_FAST               32 (i)
+           2382 LOAD_FAST               30 (col)
+           2384 LOAD_CONST              20 ('bl')
+           2386 STORE_SUBSCR
+        >> 2390 JUMP_BACKWARD          156 (to 2080)
+
+771     >> 2392 LOAD_CONST              17 ('q')
+           2394 LOAD_FAST               30 (col)
+           2396 CONTAINS_OP              0
+           2398 POP_JUMP_FORWARD_IF_FALSE    26 (to 2452)
+
+772        2400 LOAD_GLOBAL             31 (NULL + len)
+           2412 LOAD_FAST               20 (h_row)
+           2414 PRECALL                  1
+           2418 CALL                     1
+           2428 LOAD_FAST               30 (col)
+           2430 LOAD_CONST              33 ('nc')
+           2432 STORE_SUBSCR
+
+773        2436 LOAD_FAST               30 (col)
+           2438 STORE_FAST              12 (last_col_map)
+
+774        2440 LOAD_FAST               19 (h_idx)
+           2442 LOAD_CONST              16 (1)
+           2444 BINARY_OP                0 (+)
+           2448 STORE_FAST              31 (start_idx)
+           2450 JUMP_FORWARD            76 (to 2604)
+
+775     >> 2452 LOAD_FAST               12 (last_col_map)
+           2454 POP_JUMP_FORWARD_IF_FALSE    34 (to 2524)
+           2456 LOAD_GLOBAL             31 (NULL + len)
+           2468 LOAD_FAST               18 (table)
+           2470 LOAD_CONST               1 (0)
+           2472 BINARY_SUBSCR
+           2482 PRECALL                  1
+           2486 CALL                     1
+           2496 LOAD_FAST               12 (last_col_map)
+           2498 LOAD_CONST              33 ('nc')
+           2500 BINARY_SUBSCR
+           2510 COMPARE_OP               2 (==)
+           2516 POP_JUMP_FORWARD_IF_FALSE     3 (to 2524)
+
+776        2518 LOAD_FAST               12 (last_col_map)
+           2520 STORE_FAST              30 (col)
+           2522 JUMP_FORWARD            40 (to 2604)
+
+778     >> 2524 EXTENDED_ARG             3
+           2526 JUMP_BACKWARD          934 (to 660)
+
+779     >> 2528 LOAD_FAST               12 (last_col_map)
+           2530 POP_JUMP_FORWARD_IF_FALSE    34 (to 2600)
+           2532 LOAD_GLOBAL             31 (NULL + len)
+           2544 LOAD_FAST               18 (table)
+           2546 LOAD_CONST               1 (0)
+           2548 BINARY_SUBSCR
+           2558 PRECALL                  1
+           2562 CALL                     1
+           2572 LOAD_FAST               12 (last_col_map)
+           2574 LOAD_CONST              33 ('nc')
+           2576 BINARY_SUBSCR
+           2586 COMPARE_OP               2 (==)
+           2592 POP_JUMP_FORWARD_IF_FALSE     3 (to 2600)
+
+780        2594 LOAD_FAST               12 (last_col_map)
+           2596 STORE_FAST              30 (col)
+           2598 JUMP_FORWARD             2 (to 2604)
+
+782     >> 2600 EXTENDED_ARG             3
+           2602 JUMP_BACKWARD          972 (to 660)
+
+784     >> 2604 LOAD_FAST               30 (col)
+           2606 LOAD_METHOD             16 (get)
+           2628 LOAD_CONST              17 ('q')
+           2630 PRECALL                  1
+           2634 CALL                     1
+           2644 STORE_FAST              35 (qc)
+
+785        2646 LOAD_FAST               30 (col)
+           2648 LOAD_METHOD             16 (get)
+           2670 LOAD_CONST              18 ('qno')
+           2672 LOAD_CONST               1 (0)
+           2674 PRECALL                  2
+           2678 CALL                     2
+           2688 STORE_FAST              36 (qnoc)
+
+786        2690 LOAD_FAST               30 (col)
+           2692 LOAD_METHOD             16 (get)
+           2714 LOAD_CONST              19 ('m')
+           2716 PRECALL                  1
+           2720 CALL                     1
+           2730 STORE_FAST              37 (mc)
+
+787        2732 LOAD_FAST               30 (col)
+           2734 LOAD_METHOD             16 (get)
+           2756 LOAD_CONST              20 ('bl')
+           2758 PRECALL                  1
+           2762 CALL                     1
+           2772 STORE_FAST              38 (blc)
+
+789        2774 LOAD_FAST               18 (table)
+           2776 LOAD_FAST               31 (start_idx)
+           2778 LOAD_CONST               2 (None)
+           2780 BUILD_SLICE              2
+           2782 BINARY_SUBSCR
+           2792 GET_ITER
+        >> 2794 EXTENDED_ARG             2
+           2796 FOR_ITER               653 (to 4104)
+           2798 STORE_DEREF             50 (row)
+
+790        2800 LOAD_DEREF              50 (row)
+           2802 POP_JUMP_FORWARD_IF_TRUE     1 (to 2806)
+
+791        2804 JUMP_BACKWARD            6 (to 2794)
+
+792     >> 2806 LOAD_CLOSURE            50 (row)
+           2808 BUILD_TUPLE              1
+           2810 LOAD_CONST              34 (<code object sg at 0x00000175DFA7FAF0, file "D:\man\man\backend\ocr_pipeline.py", line 792>)
+           2812 MAKE_FUNCTION            8 (closure)
+           2814 STORE_FAST              39 (sg)
+
+795        2816 PUSH_NULL
+           2818 LOAD_FAST               39 (sg)
+           2820 LOAD_FAST               36 (qnoc)
+           2822 PRECALL                  1
+           2826 CALL                     1
+           2836 STORE_FAST              40 (qno)
+
+796        2838 PUSH_NULL
+           2840 LOAD_FAST               39 (sg)
+           2842 LOAD_FAST               35 (qc)
+           2844 PRECALL                  1
+           2848 CALL                     1
+           2858 STORE_FAST              41 (qtext)
+
+798        2860 LOAD_FAST               41 (qtext)
+           2862 POP_JUMP_FORWARD_IF_TRUE     1 (to 2866)
+
+799        2864 JUMP_BACKWARD           36 (to 2794)
+
+802     >> 2866 LOAD_FAST               41 (qtext)
+           2868 LOAD_METHOD              6 (split)
+           2890 LOAD_CONST              14 ('\n')
+           2892 PRECALL                  1
+           2896 CALL                     1
+           2906 STORE_FAST              42 (lines)
+
+803        2908 LOAD_GLOBAL             54 (SECTION_PATTERNS)
+           2920 LOAD_METHOD              8 (match)
+           2942 LOAD_FAST               42 (lines)
+           2944 LOAD_CONST               1 (0)
+           2946 BINARY_SUBSCR
+           2956 LOAD_METHOD              9 (strip)
+           2978 PRECALL                  0
+           2982 CALL                     0
+           2992 PRECALL                  1
+           2996 CALL                     1
+           3006 POP_JUMP_FORWARD_IF_FALSE    94 (to 3196)
+
+804        3008 LOAD_FAST               42 (lines)
+           3010 LOAD_CONST               1 (0)
+           3012 BINARY_SUBSCR
+           3022 LOAD_METHOD              9 (strip)
+           3044 PRECALL                  0
+           3048 CALL                     0
+           3058 LOAD_METHOD             28 (upper)
+           3080 PRECALL                  0
+           3084 CALL                     0
+           3094 STORE_FAST               5 (current_section)
+
+805        3096 LOAD_CONST              14 ('\n')
+           3098 LOAD_METHOD             29 (join)
+           3120 LOAD_FAST               42 (lines)
+           3122 LOAD_CONST              16 (1)
+           3124 LOAD_CONST               2 (None)
+           3126 BUILD_SLICE              2
+           3128 BINARY_SUBSCR
+           3138 PRECALL                  1
+           3142 CALL                     1
+           3152 LOAD_METHOD              9 (strip)
+           3174 PRECALL                  0
+           3178 CALL                     0
+           3188 STORE_FAST              41 (qtext)
+
+806        3190 LOAD_FAST               41 (qtext)
+           3192 POP_JUMP_FORWARD_IF_TRUE     1 (to 3196)
+
+807        3194 JUMP_BACKWARD          201 (to 2794)
+
+809     >> 3196 PUSH_NULL
+           3198 LOAD_FAST                8 (parse_marks)
+           3200 PUSH_NULL
+           3202 LOAD_FAST               39 (sg)
+           3204 LOAD_FAST               37 (mc)
+           3206 PRECALL                  1
+           3210 CALL                     1
+           3220 PRECALL                  1
+           3224 CALL                     1
+           3234 JUMP_IF_TRUE_OR_POP     14 (to 3264)
+           3236 LOAD_GLOBAL             61 (NULL + extract_marks)
+           3248 LOAD_FAST               41 (qtext)
+           3250 PRECALL                  1
+           3254 CALL                     1
+        >> 3264 STORE_FAST              43 (marks)
+
+810        3266 LOAD_GLOBAL             37 (NULL + extract_blooms)
+           3278 PUSH_NULL
+           3280 LOAD_FAST               39 (sg)
+           3282 LOAD_FAST               38 (blc)
+           3284 PRECALL                  1
+           3288 CALL                     1
+           3298 PRECALL                  1
+           3302 CALL                     1
+           3312 JUMP_IF_TRUE_OR_POP     14 (to 3342)
+           3314 LOAD_GLOBAL             37 (NULL + extract_blooms)
+           3326 LOAD_FAST               41 (qtext)
+           3328 PRECALL                  1
+           3332 CALL                     1
+        >> 3342 STORE_FAST              44 (blooms)
+
+812        3344 LOAD_GLOBAL             39 (NULL + is_junk_question)
+           3356 LOAD_FAST               40 (qno)
+           3358 LOAD_FAST               41 (qtext)
+           3360 LOAD_FAST               43 (marks)
+           3362 LOAD_FAST               44 (blooms)
+           3364 PRECALL                  4
+           3368 CALL                     4
+           3378 POP_JUMP_FORWARD_IF_FALSE    50 (to 3480)
+
+814        3380 LOAD_FAST                2 (questions)
+           3382 POP_JUMP_FORWARD_IF_TRUE     2 (to 3388)
+
+815        3384 EXTENDED_ARG             1
+           3386 JUMP_BACKWARD          297 (to 2794)
+
+817     >> 3388 LOAD_GLOBAL             31 (NULL + len)
+           3400 LOAD_FAST               41 (qtext)
+           3402 PRECALL                  1
+           3406 CALL                     1
+           3416 LOAD_CONST               1 (0)
+           3418 COMPARE_OP               4 (>)
+           3424 POP_JUMP_FORWARD_IF_FALSE    25 (to 3476)
+
+818        3426 LOAD_FAST                2 (questions)
+           3428 LOAD_CONST              22 (-1)
+           3430 BINARY_SUBSCR
+           3440 LOAD_CONST              26 ('question_text')
+           3442 COPY                     2
+           3444 COPY                     2
+           3446 BINARY_SUBSCR
+           3456 LOAD_CONST              14 ('\n')
+           3458 LOAD_FAST               41 (qtext)
+           3460 BINARY_OP                0 (+)
+           3464 BINARY_OP               13 (+=)
+           3468 SWAP                     3
+           3470 SWAP                     2
+           3472 STORE_SUBSCR
+
+819     >> 3476 EXTENDED_ARG             1
+           3478 JUMP_BACKWARD          343 (to 2794)
+
+822     >> 3480 LOAD_FAST               40 (qno)
+           3482 POP_JUMP_FORWARD_IF_TRUE    23 (to 3530)
+           3484 LOAD_GLOBAL             31 (NULL + len)
+           3496 LOAD_FAST               41 (qtext)
+           3498 PRECALL                  1
+           3502 CALL                     1
+           3512 LOAD_CONST              35 (200)
+           3514 COMPARE_OP               4 (>)
+           3520 POP_JUMP_FORWARD_IF_FALSE     4 (to 3530)
+           3522 LOAD_FAST               43 (marks)
+           3524 POP_JUMP_FORWARD_IF_TRUE     2 (to 3530)
+
+823        3526 EXTENDED_ARG             1
+           3528 JUMP_BACKWARD          368 (to 2794)
+
+826     >> 3530 LOAD_GLOBAL             41 (NULL + bool)
+           3542 LOAD_GLOBAL             43 (NULL + re)
+           3554 LOAD_ATTR                8 (match)
+           3564 LOAD_CONST              21 ('^\\d{1,3}[\\.\\)]?.*$')
+           3566 LOAD_FAST               40 (qno)
+           3568 PRECALL                  2
+           3572 CALL                     2
+           3582 PRECALL                  1
+           3586 CALL                     1
+           3596 JUMP_IF_TRUE_OR_POP     25 (to 3648)
+           3598 LOAD_FAST               40 (qno)
+           3600 UNARY_NOT
+           3602 JUMP_IF_FALSE_OR_POP    22 (to 3648)
+           3604 LOAD_GLOBAL             31 (NULL + len)
+           3616 LOAD_FAST               41 (qtext)
+           3618 PRECALL                  1
+           3622 CALL                     1
+           3632 LOAD_CONST              36 (10)
+           3634 COMPARE_OP               4 (>)
+           3640 JUMP_IF_FALSE_OR_POP     3 (to 3648)
+           3642 LOAD_FAST               43 (marks)
+           3644 JUMP_IF_TRUE_OR_POP      1 (to 3648)
+           3646 LOAD_FAST               44 (blooms)
+        >> 3648 STORE_FAST              45 (is_new)
+
+828        3650 LOAD_FAST               45 (is_new)
+           3652 POP_JUMP_FORWARD_IF_TRUE    48 (to 3750)
+           3654 LOAD_GLOBAL             31 (NULL + len)
+           3666 LOAD_FAST               41 (qtext)
+           3668 PRECALL                  1
+           3672 CALL                     1
+           3682 LOAD_CONST              37 (5)
+           3684 COMPARE_OP               0 (<)
+           3690 POP_JUMP_FORWARD_IF_FALSE    29 (to 3750)
+
+829        3692 LOAD_FAST                2 (questions)
+           3694 POP_JUMP_FORWARD_IF_FALSE    25 (to 3746)
+
+830        3696 LOAD_FAST                2 (questions)
+           3698 LOAD_CONST              22 (-1)
+           3700 BINARY_SUBSCR
+           3710 LOAD_CONST              26 ('question_text')
+           3712 COPY                     2
+           3714 COPY                     2
+           3716 BINARY_SUBSCR
+           3726 LOAD_CONST              14 ('\n')
+           3728 LOAD_FAST               41 (qtext)
+           3730 BINARY_OP                0 (+)
+           3734 BINARY_OP               13 (+=)
+           3738 SWAP                     3
+           3740 SWAP                     2
+           3742 STORE_SUBSCR
+
+831     >> 3746 EXTENDED_ARG             1
+           3748 JUMP_BACKWARD          478 (to 2794)
+
+833     >> 3750 LOAD_GLOBAL             47 (NULL + clean_question_text)
+           3762 LOAD_FAST               41 (qtext)
+           3764 PRECALL                  1
+           3768 CALL                     1
+           3778 STORE_FAST              46 (clean)
+
+834        3780 LOAD_FAST               46 (clean)
+           3782 POP_JUMP_FORWARD_IF_TRUE     4 (to 3792)
+           3784 LOAD_FAST               43 (marks)
+           3786 POP_JUMP_FORWARD_IF_TRUE     2 (to 3792)
+
+835        3788 EXTENDED_ARG             1
+           3790 JUMP_BACKWARD          499 (to 2794)
+
+837     >> 3792 LOAD_FAST               45 (is_new)
+           3794 POP_JUMP_FORWARD_IF_FALSE    45 (to 3886)
+
+838        3796 LOAD_FAST                2 (questions)
+           3798 LOAD_METHOD             22 (append)
+
+839        3820 LOAD_FAST               40 (qno)
+
+840        3822 LOAD_FAST                5 (current_section)
+
+841        3824 LOAD_FAST               46 (clean)
+
+842        3826 LOAD_FAST               43 (marks)
+
+843        3828 LOAD_FAST               44 (blooms)
+
+844        3830 LOAD_GLOBAL             63 (NULL + classify_question_type)
+           3842 LOAD_FAST               43 (marks)
+           3844 PRECALL                  1
+           3848 CALL                     1
+
+845        3858 LOAD_FAST                3 (current_unit_no)
+
+846        3860 LOAD_FAST                4 (current_unit_title)
+
+838        3862 LOAD_CONST              38 (('question_no', 'section_name', 'question_text', 'marks', 'blooms_level', 'question_type', 'unit_no', 'unit_title'))
+           3864 BUILD_CONST_KEY_MAP      8
+           3866 PRECALL                  1
+           3870 CALL                     1
+           3880 POP_TOP
+           3882 EXTENDED_ARG             2
+           3884 JUMP_BACKWARD          546 (to 2794)
+
+848     >> 3886 LOAD_FAST                2 (questions)
+           3888 POP_JUMP_FORWARD_IF_FALSE   105 (to 4100)
+
+850        3890 LOAD_FAST                2 (questions)
+           3892 LOAD_CONST              22 (-1)
+           3894 BINARY_SUBSCR
+           3904 LOAD_CONST              26 ('question_text')
+           3906 COPY                     2
+           3908 COPY                     2
+           3910 BINARY_SUBSCR
+           3920 LOAD_CONST              14 ('\n')
+           3922 LOAD_FAST               46 (clean)
+           3924 BINARY_OP                0 (+)
+           3928 BINARY_OP               13 (+=)
+           3932 SWAP                     3
+           3934 SWAP                     2
+           3936 STORE_SUBSCR
+
+852        3940 LOAD_FAST               43 (marks)
+           3942 POP_JUMP_FORWARD_IF_FALSE    38 (to 4020)
+           3944 LOAD_FAST                2 (questions)
+           3946 LOAD_CONST              22 (-1)
+           3948 BINARY_SUBSCR
+           3958 LOAD_METHOD             16 (get)
+           3980 LOAD_CONST              39 ('marks')
+           3982 PRECALL                  1
+           3986 CALL                     1
+           3996 POP_JUMP_FORWARD_IF_TRUE    11 (to 4020)
+
+853        3998 LOAD_FAST               43 (marks)
+           4000 LOAD_FAST                2 (questions)
+           4002 LOAD_CONST              22 (-1)
+           4004 BINARY_SUBSCR
+           4014 LOAD_CONST              39 ('marks')
+           4016 STORE_SUBSCR
+
+854     >> 4020 LOAD_FAST               44 (blooms)
+           4022 POP_JUMP_FORWARD_IF_FALSE    38 (to 4100)
+           4024 LOAD_FAST                2 (questions)
+           4026 LOAD_CONST              22 (-1)
+           4028 BINARY_SUBSCR
+           4038 LOAD_METHOD             16 (get)
+           4060 LOAD_CONST              40 ('blooms_level')
+           4062 PRECALL                  1
+           4066 CALL                     1
+           4076 POP_JUMP_FORWARD_IF_TRUE    11 (to 4100)
+
+855        4078 LOAD_FAST               44 (blooms)
+           4080 LOAD_FAST                2 (questions)
+           4082 LOAD_CONST              22 (-1)
+           4084 BINARY_SUBSCR
+           4094 LOAD_CONST              40 ('blooms_level')
+           4096 STORE_SUBSCR
+        >> 4100 EXTENDED_ARG             2
+           4102 JUMP_BACKWARD          655 (to 2794)
+
+789     >> 4104 EXTENDED_ARG             6
+           4106 JUMP_BACKWARD         1724 (to 660)
+
+715     >> 4108 EXTENDED_ARG             7
+           4110 JUMP_BACKWARD         1962 (to 188)
+
+704     >> 4112 NOP
+
+691        4114 LOAD_CONST               2 (None)
+           4116 LOAD_CONST               2 (None)
+           4118 LOAD_CONST               2 (None)
+           4120 PRECALL                  2
+           4124 CALL                     2
+           4134 POP_TOP
+           4136 JUMP_FORWARD            11 (to 4160)
+        >> 4138 PUSH_EXC_INFO
+           4140 WITH_EXCEPT_START
+           4142 POP_JUMP_FORWARD_IF_TRUE     4 (to 4152)
+           4144 RERAISE                  2
+        >> 4146 COPY                     3
+           4148 POP_EXCEPT
+           4150 RERAISE                  1
+        >> 4152 POP_TOP
+           4154 POP_EXCEPT
+           4156 POP_TOP
+           4158 POP_TOP
+
+857     >> 4160 LOAD_FAST                2 (questions)
+           4162 GET_ITER
+        >> 4164 FOR_ITER               140 (to 4446)
+           4166 STORE_FAST              47 (q)
+
+858        4168 LOAD_GLOBAL             47 (NULL + clean_question_text)
+           4180 LOAD_FAST               47 (q)
+           4182 LOAD_CONST              26 ('question_text')
+           4184 BINARY_SUBSCR
+           4194 PRECALL                  1
+           4198 CALL                     1
+           4208 LOAD_FAST               47 (q)
+           4210 LOAD_CONST              26 ('question_text')
+           4212 STORE_SUBSCR
+
+859        4216 LOAD_FAST               47 (q)
+           4218 LOAD_METHOD             16 (get)
+           4240 LOAD_CONST              39 ('marks')
+           4242 PRECALL                  1
+           4246 CALL                     1
+           4256 POP_JUMP_FORWARD_IF_TRUE    24 (to 4306)
+
+860        4258 LOAD_GLOBAL             61 (NULL + extract_marks)
+           4270 LOAD_FAST               47 (q)
+           4272 LOAD_CONST              26 ('question_text')
+           4274 BINARY_SUBSCR
+           4284 PRECALL                  1
+           4288 CALL                     1
+           4298 LOAD_FAST               47 (q)
+           4300 LOAD_CONST              39 ('marks')
+           4302 STORE_SUBSCR
+
+861     >> 4306 LOAD_FAST               47 (q)
+           4308 LOAD_METHOD             16 (get)
+           4330 LOAD_CONST              40 ('blooms_level')
+           4332 PRECALL                  1
+           4336 CALL                     1
+           4346 POP_JUMP_FORWARD_IF_TRUE    24 (to 4396)
+
+862        4348 LOAD_GLOBAL             37 (NULL + extract_blooms)
+           4360 LOAD_FAST               47 (q)
+           4362 LOAD_CONST              26 ('question_text')
+           4364 BINARY_SUBSCR
+           4374 PRECALL                  1
+           4378 CALL                     1
+           4388 LOAD_FAST               47 (q)
+           4390 LOAD_CONST              40 ('blooms_level')
+           4392 STORE_SUBSCR
+
+863     >> 4396 LOAD_GLOBAL             63 (NULL + classify_question_type)
+           4408 LOAD_FAST               47 (q)
+           4410 LOAD_CONST              39 ('marks')
+           4412 BINARY_SUBSCR
+           4422 PRECALL                  1
+           4426 CALL                     1
+           4436 LOAD_FAST               47 (q)
+           4438 LOAD_CONST              41 ('question_type')
+           4440 STORE_SUBSCR
+           4444 JUMP_BACKWARD          141 (to 4164)
+
+865     >> 4446 LOAD_FAST                2 (questions)
+           4448 RETURN_VALUE
+ExceptionTable:
+  150 to 416 -> 4138 [1] lasti
+  418 to 516 -> 520 [3]
+  518 to 518 -> 4138 [1] lasti
+  520 to 522 -> 528 [4] lasti
+  524 to 4110 -> 4138 [1] lasti
+  4138 to 4144 -> 4146 [3] lasti
+  4152 to 4152 -> 4146 [3] lasti
